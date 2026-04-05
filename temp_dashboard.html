@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Codex Problems Dashboard</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Theme Config -->
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#10b77f", // Emerald-ish green as requested/implied
+                        "background-light": "#f4f4f5", // Zinc-100
+                        "background-dark": "#09090b", // Zinc-950
+                        "surface-dark": "#18181b", // Zinc-900
+                        "surface-hover": "#27272a", // Zinc-800
+                    },
+                    fontFamily: {
+                        display: ["Space Grotesk", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        lg: "0.75rem",
+                        xl: "1rem",
+                        full: "9999px",
+                    },
+                },
+            },
+        }
+    </script>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display min-h-screen flex flex-col antialiased selection:bg-primary selection:text-white">
+<!-- Top Navigation -->
+<header class="sticky top-0 z-50 border-b border-zinc-200 dark:border-zinc-800 bg-background-light/80 dark:bg-background-dark/80 backdrop-blur-md">
+<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+<div class="flex items-center justify-between h-16">
+<!-- Logo -->
+<div class="flex items-center gap-2">
+<div class="w-8 h-8 text-primary">
+<svg fill="none" viewbox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+<path d="M42.1739 20.1739L27.8261 5.82609C29.1366 7.13663 28.3989 10.1876 26.2002 13.7654C24.8538 15.9564 22.9595 18.3449 20.6522 20.6522C18.3449 22.9595 15.9564 24.8538 13.7654 26.2002C10.1876 28.3989 7.13663 29.1366 5.82609 27.8261L20.1739 42.1739C21.4845 43.4845 24.5355 42.7467 28.1133 40.548C30.3042 39.2016 32.6927 37.3073 35 35C37.3073 32.6927 39.2016 30.3042 40.548 28.1133C42.7467 24.5355 43.4845 21.4845 42.1739 20.1739Z" fill="currentColor"></path>
+<path clip-rule="evenodd" d="M7.24189 26.4066C7.31369 26.4411 7.64204 26.5637 8.52504 26.3738C9.59462 26.1438 11.0343 25.5311 12.7183 24.4963C14.7583 23.2426 17.0256 21.4503 19.238 19.238C21.4503 17.0256 23.2426 14.7583 24.4963 12.7183C25.5311 11.0343 26.1438 9.59463 26.3738 8.52504C26.5637 7.64204 26.4411 7.31369 26.4066 7.24189C26.345 7.21246 26.143 7.14535 25.6664 7.1918C24.9745 7.25925 23.9954 7.5498 22.7699 8.14278C20.3369 9.32007 17.3369 11.4915 14.4142 14.4142C11.4915 17.3369 9.32007 20.3369 8.14278 22.7699C7.5498 23.9954 7.25925 24.9745 7.1918 25.6664C7.14534 26.143 7.21246 26.345 7.24189 26.4066ZM29.9001 10.7285C29.4519 12.0322 28.7617 13.4172 27.9042 14.8126C26.465 17.1544 24.4686 19.6641 22.0664 22.0664C19.6641 24.4686 17.1544 26.465 14.8126 27.9042C13.4172 28.7617 12.0322 29.4519 10.7285 29.9001L21.5754 40.747C21.6001 40.7606 21.8995 40.931 22.8729 40.7217C23.9424 40.4916 25.3821 39.879 27.0661 38.8441C29.1062 37.5904 31.3734 35.7982 33.5858 33.5858C35.7982 31.3734 37.5904 29.1062 38.8441 27.0661C39.879 25.3821 40.4916 23.9425 40.7216 22.8729C40.931 21.8995 40.7606 21.6001 40.747 21.5754L29.9001 10.7285ZM29.2403 4.41187L43.5881 18.7597C44.9757 20.1473 44.9743 22.1235 44.6322 23.7139C44.2714 25.3919 43.4158 27.2666 42.252 29.1604C40.8128 31.5022 38.8165 34.012 36.4142 36.4142C34.012 38.8165 31.5022 40.8128 29.1604 42.252C27.2666 43.4158 25.3919 44.2714 23.7139 44.6322C22.1235 44.9743 20.1473 44.9757 18.7597 43.5881L4.41187 29.2403C3.29027 28.1187 3.08209 26.5973 3.21067 25.2783C3.34099 23.9415 3.8369 22.4852 4.54214 21.0277C5.96129 18.0948 8.43335 14.7382 11.5858 11.5858C14.7382 8.43335 18.0948 5.9613 21.0277 4.54214C22.4852 3.8369 23.9415 3.34099 25.2783 3.21067C26.5973 3.08209 28.1187 3.29028 29.2403 4.41187Z" fill="currentColor" fill-rule="evenodd"></path>
+</svg>
+</div>
+<span class="text-lg font-bold tracking-tight">Codex</span>
+</div>
+<!-- Navigation Links -->
+<nav class="hidden md:flex items-center gap-8">
+<a class="text-sm font-medium text-slate-900 dark:text-white hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary transition-colors" href="#">Problems</a>
+<a class="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary transition-colors" href="#">Contests</a>
+<a class="text-sm font-medium text-slate-500 dark:text-slate-400 hover:text-primary transition-colors" href="#">Discuss</a>
+</nav>
+<!-- Right Actions -->
+<div class="flex items-center gap-4">
+<button class="relative p-2 text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
+<span class="material-symbols-outlined !text-[24px]">notifications</span>
+<span class="absolute top-1.5 right-1.5 w-2 h-2 bg-primary rounded-full ring-2 ring-white dark:ring-background-dark"></span>
+</button>
+<div class="flex items-center gap-2 pl-4 border-l border-zinc-200 dark:border-zinc-800 cursor-pointer group">
+<div class="relative w-8 h-8 overflow-hidden rounded-full ring-2 ring-transparent group-hover:ring-primary transition-all">
+<img alt="User Avatar" class="w-full h-full object-cover" data-alt="Portrait of a user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBZh6F2V2AMCE4Xc3jXNfD7OZdPJSf8oOBk09eVAYV_1ppaCWseuTpv1hzM3z36rr89da_TxpNgC3FzdumXcKW8Z1ye6om2Ajz4idQOcljn3pMcTdY054QMDRTMpS8NJ7UxcVDfmHaOiTrKvcvd7VPy6yr97f7yp7dmWiWDXNU4rjEJKGecCiFjJcXV64686mFXzwjtr8DpP9kGGJX-7hBMOoWwObHV4QkCdMdlBmcWa9YzfQ064QH2TXvtGa2pzmx7tYMScR6yYng8"/>
+</div>
+<span class="material-symbols-outlined text-slate-400 group-hover:text-slate-200 transition-colors !text-[20px]">expand_more</span>
+</div>
+</div>
+</div>
+</div>
+</header>
+<main class="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+<!-- Welcome Section -->
+<div>
+<h1 class="text-3xl font-bold tracking-tight mb-2">Welcome back, Alex</h1>
+<p class="text-slate-500 dark:text-slate-400">Pick up where you left off and keep the streak alive.</p>
+</div>
+<!-- Stats Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<!-- Problems Solved -->
+<div class="group relative overflow-hidden rounded-xl bg-white dark:bg-surface-dark p-6 border border-zinc-200 dark:border-zinc-800 hover:border-primary/50 transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500">
+<span class="material-symbols-outlined">check_circle</span>
+</div>
+<span class="text-xs font-medium text-emerald-600 dark:text-emerald-500 bg-emerald-100 dark:bg-emerald-500/10 px-2 py-1 rounded-full">+4 this week</span>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Problems Solved</p>
+<div class="flex items-end gap-2">
+<h3 class="text-3xl font-bold text-slate-900 dark:text-white">142</h3>
+<span class="text-sm text-slate-400 mb-1.5">/ 500</span>
+</div>
+</div>
+<!-- Progress bar -->
+<div class="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full mt-4 overflow-hidden">
+<div class="bg-emerald-500 h-1.5 rounded-full" style="width: 28.4%"></div>
+</div>
+</div>
+<!-- Current Streak -->
+<div class="group relative overflow-hidden rounded-xl bg-white dark:bg-surface-dark p-6 border border-zinc-200 dark:border-zinc-800 hover:border-amber-500/50 transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 rounded-lg bg-amber-100 dark:bg-amber-500/10 text-amber-600 dark:text-amber-500">
+<span class="material-symbols-outlined">local_fire_department</span>
+</div>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Current Streak</p>
+<div class="flex items-end gap-2">
+<h3 class="text-3xl font-bold text-slate-900 dark:text-white">12</h3>
+<span class="text-sm text-slate-400 mb-1.5">Days</span>
+</div>
+</div>
+<div class="flex gap-1 mt-4">
+<!-- Mini heatmap visualization -->
+<div class="h-1.5 w-full bg-amber-500 rounded-full opacity-40"></div>
+<div class="h-1.5 w-full bg-amber-500 rounded-full opacity-60"></div>
+<div class="h-1.5 w-full bg-amber-500 rounded-full opacity-80"></div>
+<div class="h-1.5 w-full bg-amber-500 rounded-full"></div>
+<div class="h-1.5 w-full bg-amber-500 rounded-full"></div>
+</div>
+</div>
+<!-- Global Rank -->
+<div class="group relative overflow-hidden rounded-xl bg-white dark:bg-surface-dark p-6 border border-zinc-200 dark:border-zinc-800 hover:border-purple-500/50 transition-all duration-300">
+<div class="flex justify-between items-start mb-4">
+<div class="p-2 rounded-lg bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-500">
+<span class="material-symbols-outlined">leaderboard</span>
+</div>
+<span class="text-xs font-medium text-emerald-600 dark:text-emerald-500 bg-emerald-100 dark:bg-emerald-500/10 px-2 py-1 rounded-full flex items-center gap-0.5">
+<span class="material-symbols-outlined !text-[14px]">trending_up</span> Top 5%
+                    </span>
+</div>
+<div>
+<p class="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Global Rank</p>
+<div class="flex items-end gap-2">
+<h3 class="text-3xl font-bold text-slate-900 dark:text-white">#1,240</h3>
+</div>
+</div>
+<div class="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full mt-4 overflow-hidden">
+<div class="bg-gradient-to-r from-purple-500 to-indigo-500 h-1.5 rounded-full" style="width: 95%"></div>
+</div>
+</div>
+</div>
+<!-- Main Content: Problems Table -->
+<div class="space-y-4">
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+<h2 class="text-xl font-bold text-slate-900 dark:text-white">Study Plan</h2>
+<!-- Filters -->
+<div class="flex items-center gap-2">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 !text-[20px]">search</span>
+<input class="pl-10 pr-4 py-2 bg-white dark:bg-surface-dark border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary w-full sm:w-64" placeholder="Search problems..." type="text"/>
+</div>
+<button class="p-2 bg-white dark:bg-surface-dark border border-zinc-200 dark:border-zinc-800 rounded-lg text-slate-500 dark:text-slate-400 hover:text-primary hover:border-primary transition-colors">
+<span class="material-symbols-outlined !text-[20px]">filter_list</span>
+</button>
+</div>
+</div>
+<div class="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-surface-dark shadow-sm">
+<div class="overflow-x-auto">
+<table class="w-full text-left text-sm">
+<thead class="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
+<tr>
+<th class="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-16" scope="col">Status</th>
+<th class="px-6 py-4 font-medium text-slate-500 dark:text-slate-400" scope="col">Title</th>
+<th class="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-40" scope="col">Difficulty</th>
+<th class="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-40" scope="col">Acceptance</th>
+<th class="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-20" scope="col"></th>
+</tr>
+</thead>
+<tbody class="divide-y divide-zinc-200 dark:divide-zinc-800">
+<!-- Row 1: Solved -->
+<tr class="group hover:bg-zinc-50 dark:hover:bg-surface-hover transition-colors">
+<td class="px-6 py-4">
+<span class="material-symbols-outlined text-emerald-500 !text-[20px]" title="Solved">check_circle</span>
+</td>
+<td class="px-6 py-4 font-medium text-slate-900 dark:text-white">
+<a class="hover:text-primary transition-colors" href="#">1. Two Sum</a>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                                        Easy
+                                    </span>
+</td>
+<td class="px-6 py-4 text-slate-500 dark:text-slate-400">49.2%</td>
+<td class="px-6 py-4 text-right">
+<button class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-white transition-all">
+<span class="material-symbols-outlined !text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 2: Unsolved -->
+<tr class="group hover:bg-zinc-50 dark:hover:bg-surface-hover transition-colors">
+<td class="px-6 py-4">
+<div class="w-5 h-5 rounded-full border-2 border-zinc-300 dark:border-zinc-600"></div>
+</td>
+<td class="px-6 py-4 font-medium text-slate-900 dark:text-white">
+<a class="hover:text-primary transition-colors" href="#">2. Add Two Numbers</a>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+                                        Medium
+                                    </span>
+</td>
+<td class="px-6 py-4 text-slate-500 dark:text-slate-400">40.8%</td>
+<td class="px-6 py-4 text-right">
+<button class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-white transition-all">
+<span class="material-symbols-outlined !text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 3: Unsolved -->
+<tr class="group hover:bg-zinc-50 dark:hover:bg-surface-hover transition-colors">
+<td class="px-6 py-4">
+<div class="w-5 h-5 rounded-full border-2 border-zinc-300 dark:border-zinc-600"></div>
+</td>
+<td class="px-6 py-4 font-medium text-slate-900 dark:text-white">
+<a class="hover:text-primary transition-colors" href="#">3. Longest Substring Without Repeating Characters</a>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+                                        Medium
+                                    </span>
+</td>
+<td class="px-6 py-4 text-slate-500 dark:text-slate-400">33.8%</td>
+<td class="px-6 py-4 text-right">
+<button class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-white transition-all">
+<span class="material-symbols-outlined !text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 4: Solved -->
+<tr class="group hover:bg-zinc-50 dark:hover:bg-surface-hover transition-colors">
+<td class="px-6 py-4">
+<span class="material-symbols-outlined text-emerald-500 !text-[20px]" title="Solved">check_circle</span>
+</td>
+<td class="px-6 py-4 font-medium text-slate-900 dark:text-white">
+<a class="hover:text-primary transition-colors" href="#">4. Median of Two Sorted Arrays</a>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-rose-100 dark:bg-rose-500/10 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-500/20">
+                                        Hard
+                                    </span>
+</td>
+<td class="px-6 py-4 text-slate-500 dark:text-slate-400">36.4%</td>
+<td class="px-6 py-4 text-right">
+<button class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-white transition-all">
+<span class="material-symbols-outlined !text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 5: Attempted (Yellow/Warning icon) -->
+<tr class="group hover:bg-zinc-50 dark:hover:bg-surface-hover transition-colors">
+<td class="px-6 py-4">
+<span class="material-symbols-outlined text-amber-500 !text-[20px]" title="Attempted">timelapse</span>
+</td>
+<td class="px-6 py-4 font-medium text-slate-900 dark:text-white">
+<a class="hover:text-primary transition-colors" href="#">5. Longest Palindromic Substring</a>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-amber-100 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-500/20">
+                                        Medium
+                                    </span>
+</td>
+<td class="px-6 py-4 text-slate-500 dark:text-slate-400">32.4%</td>
+<td class="px-6 py-4 text-right">
+<button class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-white transition-all">
+<span class="material-symbols-outlined !text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+<!-- Row 6: Unsolved -->
+<tr class="group hover:bg-zinc-50 dark:hover:bg-surface-hover transition-colors">
+<td class="px-6 py-4">
+<div class="w-5 h-5 rounded-full border-2 border-zinc-300 dark:border-zinc-600"></div>
+</td>
+<td class="px-6 py-4 font-medium text-slate-900 dark:text-white">
+<a class="hover:text-primary transition-colors" href="#">6. Zigzag Conversion</a>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-500/20">
+                                        Easy
+                                    </span>
+</td>
+<td class="px-6 py-4 text-slate-500 dark:text-slate-400">43.6%</td>
+<td class="px-6 py-4 text-right">
+<button class="opacity-0 group-hover:opacity-100 text-slate-400 hover:text-white transition-all">
+<span class="material-symbols-outlined !text-[20px]">chevron_right</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+<!-- Pagination -->
+<div class="flex items-center justify-between border-t border-zinc-200 dark:border-zinc-800 bg-white dark:bg-surface-dark px-6 py-3">
+<div class="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
+<div>
+<p class="text-sm text-slate-500 dark:text-slate-400">
+                                Showing <span class="font-medium">1</span> to <span class="font-medium">6</span> of <span class="font-medium">500</span> results
+                            </p>
+</div>
+<div>
+<nav aria-label="Pagination" class="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
+<a class="relative inline-flex items-center px-2 py-2 rounded-l-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-zinc-50 dark:hover:bg-zinc-700" href="#">
+<span class="sr-only">Previous</span>
+<span class="material-symbols-outlined !text-[20px]">chevron_left</span>
+</a>
+<a aria-current="page" class="z-10 bg-primary/10 border-primary text-primary relative inline-flex items-center px-4 py-2 border text-sm font-medium" href="#">1</a>
+<a class="bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-slate-500 dark:text-slate-400 hover:bg-zinc-50 dark:hover:bg-zinc-700 relative inline-flex items-center px-4 py-2 border text-sm font-medium" href="#">2</a>
+<a class="bg-white dark:bg-zinc-800 border-zinc-300 dark:border-zinc-700 text-slate-500 dark:text-slate-400 hover:bg-zinc-50 dark:hover:bg-zinc-700 relative inline-flex items-center px-4 py-2 border text-sm font-medium" href="#">3</a>
+<span class="relative inline-flex items-center px-4 py-2 border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm font-medium text-slate-700 dark:text-slate-400">...</span>
+<a class="relative inline-flex items-center px-2 py-2 rounded-r-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-800 text-sm font-medium text-slate-500 dark:text-slate-400 hover:bg-zinc-50 dark:hover:bg-zinc-700" href="#">
+<span class="sr-only">Next</span>
+<span class="material-symbols-outlined !text-[20px]">chevron_right</span>
+</a>
+</nav>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

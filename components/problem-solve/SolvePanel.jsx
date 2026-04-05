@@ -1,0 +1,224 @@
+"use client";
+import Editor from "@monaco-editor/react";
+import { useState } from "react";
+import { useEditorStore } from "@/store/editorStore";
+import { useCodeExecution } from "@/hooks/useCodeExecution";
+import { LanguageSelector } from "@/components/editor/LanguageSelector";
+
+const STATUS_STYLES = {
+    ACCEPTED: "text-emerald-400",
+    WRONG_ANSWER: "text-red-400",
+    TIME_LIMIT_EXCEEDED: "text-amber-400",
+    MEMORY_LIMIT_EXCEEDED: "text-amber-400",
+    RUNTIME_ERROR: "text-red-400",
+    COMPILATION_ERROR: "text-red-400",
+    PENDING: "text-zinc-400",
+    RUNNING: "text-blue-400",
+};
+
+const STATUS_LABELS = {
+    ACCEPTED: "✓ Accepted",
+    WRONG_ANSWER: "✗ Wrong Answer",
+    TIME_LIMIT_EXCEEDED: "⏱ Time Limit Exceeded",
+    MEMORY_LIMIT_EXCEEDED: "Memory Limit Exceeded",
+    RUNTIME_ERROR: "Runtime Error",
+    COMPILATION_ERROR: "Compilation Error",
+    PENDING: "Pending...",
+    RUNNING: "Running...",
+};
+
+export function SolvePanel({ problem }) {
+    const { selectedLanguage, code, setCode, theme } = useEditorStore();
+    const { execute, isRunning, result, error, reset } = useCodeExecution();
+    const [consoleTab, setConsoleTab] = useState("testcase"); // "testcase" | "result"
+
+    const currentCode = selectedLanguage ? (code[selectedLanguage.id] || "") : "";
+
+    const handleCodeChange = (val) => {
+        if (selectedLanguage) setCode(selectedLanguage.id, val || "");
+    };
+
+    const handleRun = async () => {
+        if (!problem?.id || !selectedLanguage?.id) return;
+        setConsoleTab("result");
+        await execute({
+            problemId: problem.id,
+            languageId: selectedLanguage.id,
+            sourceCode: currentCode,
+        });
+    };
+
+    const handleSubmit = async () => {
+        if (!problem?.id || !selectedLanguage?.id) return;
+        setConsoleTab("result");
+        reset();
+        await execute({
+            problemId: problem.id,
+            languageId: selectedLanguage.id,
+            sourceCode: currentCode,
+        });
+    };
+
+    const statusStyle = result?.status ? (STATUS_STYLES[result.status] || "text-zinc-300") : "";
+    const statusLabel = result?.status ? (STATUS_LABELS[result.status] || result.status) : "";
+
+    return (
+        <section className="flex flex-col h-full bg-[#1e1e1e]">
+            {/* Editor Top Bar */}
+            <div className="h-10 flex items-center justify-between px-3 border-b border-zinc-800 bg-[#18181b]">
+                <div className="flex items-center gap-2">
+                    <LanguageSelector />
+                    <div className="w-px h-4 bg-zinc-700" />
+                    <span className="text-xs text-zinc-500 px-2">Auto-saved</span>
+                </div>
+                <div className="flex items-center gap-3 text-zinc-400">
+                    <button
+                        onClick={() => useEditorStore.getState().setTheme(theme === "vs-dark" ? "light" : "vs-dark")}
+                        className="hover:text-white transition-colors"
+                        title="Toggle theme"
+                    >
+                        <span className="material-symbols-outlined text-[18px]">
+                            {theme === "vs-dark" ? "light_mode" : "dark_mode"}
+                        </span>
+                    </button>
+                </div>
+            </div>
+
+            {/* Code Editor */}
+            <div className="flex-1 relative overflow-hidden">
+                <Editor
+                    height="100%"
+                    language={selectedLanguage?.name?.toLowerCase().includes("python") ? "python" :
+                              selectedLanguage?.name?.toLowerCase().includes("java") && !selectedLanguage?.name?.toLowerCase().includes("script") ? "java" :
+                              selectedLanguage?.name?.toLowerCase().includes("c++") || selectedLanguage?.name?.toLowerCase().includes("cpp") ? "cpp" :
+                              selectedLanguage?.name?.toLowerCase().includes("javascript") ? "javascript" : "plaintext"}
+                    theme={theme}
+                    value={currentCode}
+                    onChange={handleCodeChange}
+                    options={{
+                        minimap: { enabled: false },
+                        fontSize: 14,
+                        fontFamily: "Menlo, Monaco, 'Courier New', monospace",
+                        fontLigatures: false,
+                        padding: { top: 16 },
+                        scrollBeyondLastLine: false,
+                        tabSize: 4,
+                        wordWrap: "on",
+                    }}
+                />
+            </div>
+
+            {/* Bottom Console */}
+            <div className="bg-[#18181b] border-t border-zinc-800 flex flex-col shrink-0" style={{ maxHeight: "240px" }}>
+                {/* Console Header */}
+                <div className="flex items-center justify-between px-4 py-2 border-b border-zinc-800">
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => setConsoleTab("testcase")}
+                            className={`text-xs font-medium pb-0.5 transition-colors ${consoleTab === "testcase" ? "text-white border-b border-emerald-500" : "text-zinc-500 hover:text-zinc-300"}`}
+                        >
+                            Testcase
+                        </button>
+                        <button
+                            onClick={() => setConsoleTab("result")}
+                            className={`text-xs font-medium pb-0.5 transition-colors ${consoleTab === "result" ? "text-white border-b border-emerald-500" : "text-zinc-500 hover:text-zinc-300"}`}
+                        >
+                            Result
+                            {result && <span className={`ml-1 ${statusStyle}`}>•</span>}
+                        </button>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                        <button
+                            onClick={handleRun}
+                            disabled={isRunning || !selectedLanguage}
+                            className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white px-4 py-1.5 rounded-lg text-xs font-semibold transition-all border border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
+                        >
+                            {isRunning ? (
+                                <><div className="w-3 h-3 border border-zinc-400 border-t-transparent rounded-full animate-spin" /> Running...</>
+                            ) : (
+                                <><span className="material-symbols-outlined text-[14px]">play_arrow</span> Run</>
+                            )}
+                        </button>
+                        <button
+                            onClick={handleSubmit}
+                            disabled={isRunning || !selectedLanguage}
+                            className="bg-emerald-500 hover:bg-emerald-600 text-[#09090b] px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-[0_0_15px_rgba(16,183,127,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            Submit
+                        </button>
+                    </div>
+                </div>
+
+                {/* Console Content */}
+                <div className="flex-1 overflow-auto p-3 font-mono text-xs">
+                    {consoleTab === "testcase" && (
+                        <div className="text-zinc-400 space-y-2">
+                            <p className="text-zinc-500">Sample test case will run against your code.</p>
+                            <p className="text-zinc-600">Click <span className="text-zinc-400">Run</span> to test, <span className="text-zinc-400">Submit</span> to evaluate all test cases.</p>
+                        </div>
+                    )}
+
+                    {consoleTab === "result" && (
+                        <div className="space-y-3">
+                            {isRunning && (
+                                <div className="flex items-center gap-2 text-blue-400">
+                                    <div className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin" />
+                                    <span>Executing...</span>
+                                </div>
+                            )}
+
+                            {error && (
+                                <div className="text-red-400 space-y-1">
+                                    <p className="font-semibold">Error</p>
+                                    <p className="text-red-300/80">{error}</p>
+                                </div>
+                            )}
+
+                            {result && !isRunning && (
+                                <div className="space-y-3">
+                                    <p className={`font-bold text-sm ${statusStyle}`}>{statusLabel}</p>
+
+                                    {result.output && (
+                                        <div>
+                                            <p className="text-zinc-500 mb-1">Output</p>
+                                            <pre className="bg-[#09090b] border border-zinc-800 p-2 rounded text-zinc-300 whitespace-pre-wrap overflow-auto max-h-24">
+                                                {result.output}
+                                            </pre>
+                                        </div>
+                                    )}
+
+                                    {result.expectedOutput && result.status === "WRONG_ANSWER" && (
+                                        <div>
+                                            <p className="text-zinc-500 mb-1">Expected</p>
+                                            <pre className="bg-[#09090b] border border-zinc-800 p-2 rounded text-emerald-300/70 whitespace-pre-wrap overflow-auto max-h-24">
+                                                {result.expectedOutput}
+                                            </pre>
+                                        </div>
+                                    )}
+
+                                    {result.message && (
+                                        <div>
+                                            <p className="text-zinc-500 mb-1">Details</p>
+                                            <p className="text-zinc-400">{result.message}</p>
+                                        </div>
+                                    )}
+
+                                    {result.testsPassed != null && result.totalTests != null && (
+                                        <p className="text-zinc-400">
+                                            Tests passed: <span className="text-white">{result.testsPassed}/{result.totalTests}</span>
+                                        </p>
+                                    )}
+                                </div>
+                            )}
+
+                            {!result && !isRunning && !error && (
+                                <p className="text-zinc-600">Run or submit your code to see results.</p>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+        </section>
+    );
+}

@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Codex Problem Workspace</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#10b77f", // Emerald 500 based on request
+                        "background-light": "#f6f8f7",
+                        "background-dark": "#09090b", // Zinc 950
+                        zinc: {
+                            800: "#27272a",
+                            900: "#18181b",
+                            950: "#09090b",
+                        }
+                    },
+                    fontFamily: {
+                        display: ["Space Grotesk", "sans-serif"],
+                        mono: ["JetBrains Mono", "monospace"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        full: "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        /* Custom scrollbar for a premium feel */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #18181b; 
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #27272a; 
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3f3f46; 
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark text-slate-900 dark:text-slate-100 font-display overflow-hidden h-screen flex flex-col">
+<!-- Top Navigation Bar -->
+<header class="h-14 flex items-center justify-between px-4 border-b border-zinc-800 bg-[#18181b] shrink-0 z-10">
+<div class="flex items-center gap-4">
+<div class="flex items-center gap-2">
+<div class="size-6 bg-zinc-800 rounded flex items-center justify-center text-primary">
+<span class="material-symbols-outlined text-[18px]">code</span>
+</div>
+<span class="font-bold text-lg tracking-tight text-white">Codex</span>
+</div>
+<div class="h-6 w-px bg-zinc-800 mx-2"></div>
+<div class="flex items-center gap-2 text-zinc-300">
+<span class="material-symbols-outlined text-[18px]">list</span>
+<span class="text-sm font-medium">Problem List</span>
+</div>
+</div>
+<!-- Center Timer/Status -->
+<div class="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 flex items-center gap-3 bg-zinc-900 px-4 py-1.5 rounded-full border border-zinc-800">
+<button class="text-zinc-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[20px]">play_arrow</span>
+</button>
+<span class="text-sm font-mono text-zinc-300">00:14:32</span>
+<button class="text-zinc-400 hover:text-white transition-colors">
+<span class="material-symbols-outlined text-[18px]">restart_alt</span>
+</button>
+</div>
+<!-- Right Actions -->
+<div class="flex items-center gap-3">
+<button class="flex items-center justify-center size-9 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 transition-colors">
+<span class="material-symbols-outlined text-[20px]">settings</span>
+</button>
+<button class="flex items-center justify-center size-9 rounded-lg bg-zinc-800 hover:bg-zinc-700 text-zinc-400 transition-colors">
+<span class="material-symbols-outlined text-[20px]">person</span>
+</button>
+</div>
+</header>
+<!-- Main Content Area (Split Pane) -->
+<main class="flex-1 flex overflow-hidden">
+<!-- Left Panel: Problem Description -->
+<section class="w-1/2 flex flex-col border-r border-zinc-800 bg-zinc-900 h-full overflow-hidden">
+<!-- Tabs -->
+<div class="flex items-center gap-1 bg-zinc-900 border-b border-zinc-800 px-2 pt-2">
+<div class="px-4 py-2 bg-zinc-800 rounded-t-lg border-t border-x border-zinc-700 text-white text-sm font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-primary">description</span>
+                    Description
+                </div>
+<div class="px-4 py-2 hover:bg-zinc-800/50 rounded-t-lg text-zinc-400 hover:text-white text-sm font-medium cursor-pointer transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">history</span>
+                    Submissions
+                </div>
+<div class="px-4 py-2 hover:bg-zinc-800/50 rounded-t-lg text-zinc-400 hover:text-white text-sm font-medium cursor-pointer transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">forum</span>
+                    Solutions
+                </div>
+</div>
+<!-- Content -->
+<div class="flex-1 overflow-y-auto p-6 scroll-smooth">
+<div class="flex items-center justify-between mb-4">
+<h1 class="text-2xl font-bold text-white">1. Two Sum</h1>
+<div class="flex items-center gap-3">
+<span class="text-amber-400 text-xs bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20 font-medium">Medium</span>
+<div class="flex gap-1">
+<button class="text-zinc-500 hover:text-white"><span class="material-symbols-outlined text-[18px]">thumb_up</span></button>
+<button class="text-zinc-500 hover:text-white"><span class="material-symbols-outlined text-[18px]">thumb_down</span></button>
+<button class="text-zinc-500 hover:text-white"><span class="material-symbols-outlined text-[18px]">favorite</span></button>
+<button class="text-zinc-500 hover:text-white"><span class="material-symbols-outlined text-[18px]">share</span></button>
+</div>
+</div>
+</div>
+<div class="text-zinc-300 text-sm leading-relaxed space-y-4">
+<p>
+                        Given an array of integers <code class="bg-zinc-950 px-1 py-0.5 rounded text-zinc-200 font-mono text-xs">nums</code> and an integer <code class="bg-zinc-950 px-1 py-0.5 rounded text-zinc-200 font-mono text-xs">target</code>, return indices of the two numbers such that they add up to <code class="bg-zinc-950 px-1 py-0.5 rounded text-zinc-200 font-mono text-xs">target</code>.
+                    </p>
+<p>
+                        You may assume that each input would have <strong>exactly one solution</strong>, and you may not use the same element twice.
+                    </p>
+<p>
+                        You can return the answer in any order.
+                    </p>
+</div>
+<div class="mt-8 space-y-6">
+<!-- Example 1 -->
+<div>
+<h3 class="text-white font-semibold text-sm mb-3">Example 1:</h3>
+<div class="bg-zinc-950 border-l-2 border-zinc-700 p-4 rounded-r-lg font-mono text-xs text-zinc-300 space-y-2">
+<p><span class="text-zinc-500">Input:</span> nums = [2,7,11,15], target = 9</p>
+<p><span class="text-zinc-500">Output:</span> [0,1]</p>
+<p><span class="text-zinc-500">Explanation:</span> Because nums[0] + nums[1] == 9, we return [0, 1].</p>
+</div>
+</div>
+<!-- Example 2 -->
+<div>
+<h3 class="text-white font-semibold text-sm mb-3">Example 2:</h3>
+<div class="bg-zinc-950 border-l-2 border-zinc-700 p-4 rounded-r-lg font-mono text-xs text-zinc-300 space-y-2">
+<p><span class="text-zinc-500">Input:</span> nums = [3,2,4], target = 6</p>
+<p><span class="text-zinc-500">Output:</span> [1,2]</p>
+</div>
+</div>
+<!-- Example 3 -->
+<div>
+<h3 class="text-white font-semibold text-sm mb-3">Example 3:</h3>
+<div class="bg-zinc-950 border-l-2 border-zinc-700 p-4 rounded-r-lg font-mono text-xs text-zinc-300 space-y-2">
+<p><span class="text-zinc-500">Input:</span> nums = [3,3], target = 6</p>
+<p><span class="text-zinc-500">Output:</span> [0,1]</p>
+</div>
+</div>
+</div>
+<div class="mt-8 mb-4">
+<h3 class="text-white font-semibold text-sm mb-3">Constraints:</h3>
+<ul class="list-disc pl-5 space-y-2 text-zinc-400 text-xs">
+<li><code class="bg-zinc-950 px-1 rounded text-zinc-300 font-mono">2 &lt;= nums.length &lt;= 104</code></li>
+<li><code class="bg-zinc-950 px-1 rounded text-zinc-300 font-mono">-109 &lt;= nums[i] &lt;= 109</code></li>
+<li><code class="bg-zinc-950 px-1 rounded text-zinc-300 font-mono">-109 &lt;= target &lt;= 109</code></li>
+<li>Only one valid answer exists.</li>
+</ul>
+</div>
+</div>
+<!-- Tags/Company Info footer -->
+<div class="p-4 border-t border-zinc-800 flex gap-2">
+<span class="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded cursor-pointer hover:bg-zinc-700 hover:text-white transition-colors">Arrays</span>
+<span class="text-xs bg-zinc-800 text-zinc-400 px-2 py-1 rounded cursor-pointer hover:bg-zinc-700 hover:text-white transition-colors">Hash Table</span>
+</div>
+</section>
+<!-- Right Panel: Code Editor -->
+<section class="w-1/2 flex flex-col h-full bg-[#1e1e1e]">
+<!-- Editor Top Bar -->
+<div class="h-10 flex items-center justify-between px-3 border-b border-zinc-800 bg-zinc-900">
+<div class="flex items-center gap-2">
+<div class="flex items-center gap-1 text-primary text-xs font-medium cursor-pointer hover:bg-zinc-800 px-2 py-1 rounded transition-colors">
+<span>JavaScript</span>
+<span class="material-symbols-outlined text-[16px]">expand_more</span>
+</div>
+<div class="w-px h-4 bg-zinc-700"></div>
+<span class="text-xs text-zinc-500 px-2">Auto-saved</span>
+</div>
+<div class="flex items-center gap-3 text-zinc-400">
+<button class="hover:text-white transition-colors"><span class="material-symbols-outlined text-[18px]">settings</span></button>
+<button class="hover:text-white transition-colors"><span class="material-symbols-outlined text-[18px]">fullscreen</span></button>
+</div>
+</div>
+<!-- Code Area -->
+<div class="flex-1 relative font-mono text-sm leading-6 overflow-hidden">
+<div class="absolute inset-0 flex">
+<!-- Line Numbers -->
+<div class="w-12 bg-[#1e1e1e] border-r border-zinc-800/50 text-right pr-3 pt-4 text-zinc-600 select-none flex flex-col gap-0.5">
+<div>1</div>
+<div>2</div>
+<div>3</div>
+<div>4</div>
+<div>5</div>
+<div>6</div>
+<div>7</div>
+<div>8</div>
+<div>9</div>
+<div>10</div>
+<div>11</div>
+<div>12</div>
+</div>
+<!-- Code Content -->
+<div class="flex-1 p-4 pt-4 bg-[#1e1e1e] text-zinc-300 overflow-auto">
+<div class="whitespace-pre"><span class="text-[#c586c0]">/**</span></div>
+<div class="whitespace-pre"><span class="text-[#c586c0]"> * @param {number[]} nums</span></div>
+<div class="whitespace-pre"><span class="text-[#c586c0]"> * @param {number} target</span></div>
+<div class="whitespace-pre"><span class="text-[#c586c0]"> * @return {number[]}</span></div>
+<div class="whitespace-pre"><span class="text-[#c586c0]"> */</span></div>
+<div class="whitespace-pre"><span class="text-[#569cd6]">var</span> <span class="text-[#dcdcaa]">twoSum</span> = <span class="text-[#569cd6]">function</span>(<span class="text-[#9cdcfe]">nums</span>, <span class="text-[#9cdcfe]">target</span>) {</div>
+<div class="whitespace-pre pl-4"><span class="text-[#6a9955]">// Create a map to store the complement and its index</span></div>
+<div class="whitespace-pre pl-4"><span class="text-[#569cd6]">const</span> <span class="text-[#9cdcfe]">map</span> = <span class="text-[#569cd6]">new</span> <span class="text-[#4ec9b0]">Map</span>();</div>
+<div class="whitespace-pre"> </div>
+<div class="whitespace-pre pl-4"><span class="text-[#c586c0]">for</span> (<span class="text-[#569cd6]">let</span> <span class="text-[#9cdcfe]">i</span> = <span class="text-[#b5cea8]">0</span>; <span class="text-[#9cdcfe]">i</span> &lt; <span class="text-[#9cdcfe]">nums</span>.<span class="text-[#9cdcfe]">length</span>; <span class="text-[#9cdcfe]">i</span>++) {</div>
+<div class="whitespace-pre pl-8"><span class="text-[#569cd6]">const</span> <span class="text-[#9cdcfe]">complement</span> = <span class="text-[#9cdcfe]">target</span> - <span class="text-[#9cdcfe]">nums</span>[<span class="text-[#9cdcfe]">i</span>];</div>
+<div class="whitespace-pre pl-8"><span class="text-[#c586c0]">if</span> (<span class="text-[#9cdcfe]">map</span>.<span class="text-[#dcdcaa]">has</span>(<span class="text-[#9cdcfe]">complement</span>)) {</div>
+<div class="whitespace-pre pl-12"><span class="text-[#c586c0]">return</span> [<span class="text-[#9cdcfe]">map</span>.<span class="text-[#dcdcaa]">get</span>(<span class="text-[#9cdcfe]">complement</span>), <span class="text-[#9cdcfe]">i</span>];</div>
+<div class="whitespace-pre pl-8">}</div>
+<div class="whitespace-pre pl-8"><span class="text-[#9cdcfe]">map</span>.<span class="text-[#dcdcaa]">set</span>(<span class="text-[#9cdcfe]">nums</span>[<span class="text-[#9cdcfe]">i</span>], <span class="text-[#9cdcfe]">i</span>);</div>
+<div class="whitespace-pre pl-4">}</div>
+<div class="whitespace-pre pl-4"><span class="text-[#c586c0]">return</span> [];</div>
+<div class="whitespace-pre">};</div>
+</div>
+</div>
+</div>
+<!-- Bottom Action Bar / Console Trigger -->
+<div class="bg-zinc-900 border-t border-zinc-800 p-2 flex flex-col shrink-0 relative">
+<!-- Collapsible Console Header -->
+<div class="flex items-center justify-between mb-0 px-2">
+<button class="flex items-center gap-2 text-zinc-400 hover:text-white text-xs font-medium py-2">
+<span class="material-symbols-outlined text-[18px]">terminal</span>
+<span>Console</span>
+<span class="material-symbols-outlined text-[16px]">keyboard_arrow_up</span>
+</button>
+<div class="flex items-center gap-3">
+<button class="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white px-5 py-2 rounded-lg text-sm font-semibold tracking-wide transition-all border border-zinc-700">
+                            Run Code
+                        </button>
+<button class="bg-primary hover:bg-emerald-600 text-background-dark px-5 py-2 rounded-lg text-sm font-bold tracking-wide transition-all shadow-[0_0_15px_rgba(16,183,127,0.3)]">
+                            Submit
+                        </button>
+</div>
+</div>
+<!-- Console Content (Simulated Expanded State) -->
+<div class="h-48 border-t border-zinc-800 mt-2 pt-2 flex flex-col">
+<div class="flex gap-4 px-2 mb-4">
+<button class="text-white text-sm font-medium border-b-2 border-primary pb-1">Testcase</button>
+<button class="text-zinc-500 hover:text-zinc-300 text-sm font-medium pb-1 transition-colors">Test Result</button>
+</div>
+<div class="flex-1 overflow-auto px-2 pb-2">
+<div class="flex gap-2 mb-4">
+<button class="bg-zinc-800 text-white text-xs px-3 py-1.5 rounded hover:bg-zinc-700 transition-colors">Case 1</button>
+<button class="text-zinc-500 hover:bg-zinc-800/50 text-xs px-3 py-1.5 rounded transition-colors">Case 2</button>
+<button class="text-zinc-500 hover:bg-zinc-800/50 text-xs px-3 py-1.5 rounded transition-colors">Case 3</button>
+<button class="text-zinc-500 hover:text-zinc-300 text-xs px-2 py-1.5 transition-colors"><span class="material-symbols-outlined text-[16px]">add</span></button>
+</div>
+<div class="space-y-3 font-mono text-xs">
+<div>
+<p class="text-zinc-500 mb-1">nums =</p>
+<div class="bg-zinc-950 border border-zinc-800 p-2 rounded text-zinc-300">[2,7,11,15]</div>
+</div>
+<div>
+<p class="text-zinc-500 mb-1">target =</p>
+<div class="bg-zinc-950 border border-zinc-800 p-2 rounded text-zinc-300">9</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+</body></html>
