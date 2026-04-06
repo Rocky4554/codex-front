@@ -15,9 +15,12 @@ export async function POST(request) {
         return NextResponse.json(data, { status: backendRes.status });
     }
 
-    const user = { id: data.userId, username: data.username, email: data.email };
-    const response = NextResponse.json({ user, token: data.token });
-    response.cookies.set("auth_token", data.token, {
+    const user = data.user ?? { id: data.userId, username: data.username, email: data.email };
+    const token = data.token;
+
+    // Only return user info — token lives in httpOnly cookie only
+    const response = NextResponse.json({ user });
+    response.cookies.set("auth_token", token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",

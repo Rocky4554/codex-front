@@ -9,8 +9,13 @@ async function proxyRequest(request, { params }) {
     const backendUrl = `${BACKEND_URL}/${pathStr}${search}`;
 
     const forwardHeaders = new Headers();
-    const auth = request.headers.get("authorization");
-    if (auth) forwardHeaders.set("authorization", auth);
+
+    // Read JWT from httpOnly cookie and forward as Authorization header
+    const authCookie = request.cookies.get("auth_token")?.value;
+    if (authCookie) {
+        forwardHeaders.set("authorization", `Bearer ${authCookie}`);
+    }
+
     const contentType = request.headers.get("content-type");
     if (contentType) forwardHeaders.set("content-type", contentType);
     const accept = request.headers.get("accept");

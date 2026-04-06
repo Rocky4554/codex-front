@@ -1,6 +1,5 @@
 import { useState, useCallback } from "react";
 import api from "@/lib/axios";
-import { useAuthStore } from "@/store/authStore";
 
 /**
  * Submits code to the backend and streams SSE events for real-time results.
@@ -8,7 +7,6 @@ import { useAuthStore } from "@/store/authStore";
  * Results stream back via GET /api/submissions/{id}/events (SSE).
  */
 export function useCodeExecution() {
-    const { token } = useAuthStore();
     const [isRunning, setIsRunning] = useState(false);
     const [result, setResult] = useState(null);
     const [error, setError] = useState(null);
@@ -35,10 +33,7 @@ export function useCodeExecution() {
             const response = await fetch(
                 `/api/proxy/submissions/${submissionId}/events`,
                 {
-                    headers: {
-                        Accept: "text/event-stream",
-                        Authorization: `Bearer ${token}`,
-                    },
+                    headers: { Accept: "text/event-stream" },
                 }
             );
 
@@ -94,7 +89,7 @@ export function useCodeExecution() {
         } finally {
             setIsRunning(false);
         }
-    }, [token]);
+    }, []);
 
     const reset = useCallback(() => {
         setResult(null);

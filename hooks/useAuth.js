@@ -19,8 +19,8 @@ export const useLogin = () => {
             }
             return res.json();
         },
-        onSuccess: ({ user, token }) => {
-            setAuth(user, token);
+        onSuccess: ({ user }) => {
+            setAuth(user);
             router.push("/problems");
         },
     });
@@ -43,8 +43,8 @@ export const useRegister = () => {
             }
             return res.json();
         },
-        onSuccess: ({ user, token }) => {
-            setAuth(user, token);
+        onSuccess: ({ user }) => {
+            setAuth(user);
             router.push("/problems");
         },
     });
