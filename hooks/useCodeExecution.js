@@ -2,8 +2,6 @@ import { useState, useCallback } from "react";
 import api from "@/lib/axios";
 import { useAuthStore } from "@/store/authStore";
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL;
-
 /**
  * Submits code to the backend and streams SSE events for real-time results.
  * Both "Run" and "Submit" use POST /api/submissions.
@@ -35,7 +33,7 @@ export function useCodeExecution() {
 
             // Step 2: Stream SSE events for real-time results
             const response = await fetch(
-                `${API_BASE}/submissions/${submissionId}/events`,
+                `/api/proxy/submissions/${submissionId}/events`,
                 {
                     headers: {
                         Accept: "text/event-stream",

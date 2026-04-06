@@ -4,22 +4,22 @@ import { useLogin } from "@/hooks/useAuth";
 import Link from "next/link";
 
 export function LoginForm() {
-    const [email, setEmail] = useState("");
+    const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const { mutate: login, isPending, error } = useLogin();
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        login({ email, password });
+        login({ username, password });
     };
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
             <input
-                type="email"
-                placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
                 required
             />
