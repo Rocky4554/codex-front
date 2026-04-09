@@ -31,8 +31,11 @@ async function proxyRequest(request, { params }) {
     const backendRes = await fetch(backendUrl, init);
 
     const responseHeaders = new Headers(backendRes.headers);
-    // Let Next.js handle transfer encoding
+    // fetch() auto-decompresses gzipped responses, so strip the hop-by-hop
+    // headers that would otherwise tell the browser to decompress again.
     responseHeaders.delete("transfer-encoding");
+    responseHeaders.delete("content-encoding");
+    responseHeaders.delete("content-length");
 
     return new NextResponse(backendRes.body, {
         status: backendRes.status,
