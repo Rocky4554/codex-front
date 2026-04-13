@@ -49,18 +49,30 @@ export function useCodeExecution() {
 
             while (true) {
                 const { done, value } = await reader.read();
-                if (done) break;
+                if (done) {
+                    console.log("[SSE] Stream ended");
+                    break;
+                }
 
                 buffer += decoder.decode(value, { stream: true });
+                console.log("[SSE] Buffer:", buffer);
+                
                 const lines = buffer.split("\n");
                 buffer = lines.pop() || "";
 
                 for (const line of lines) {
+                    console.log("[SSE] Line:", line);
+                    if (line.startsWith("event:")) {
+                        console.log("[SSE] Event type:", line.slice(6).trim());
+                        continue;
+                    }
                     if (!line.startsWith("data:")) continue;
                     const raw = line.slice(5).trim();
+                    console.log("[SSE] Data:", raw);
                     if (!raw || raw === "[DONE]") continue;
                     try {
                         const event = JSON.parse(raw);
+                        console.log("[SSE] Parsed event:", event);
                         setResult(event);
                         gotResult = true;
                         if (TERMINAL.includes(event.status)) {
@@ -69,6 +81,7 @@ export function useCodeExecution() {
                         }
                     } catch {
                         // Plain-text terminal status (e.g. "ACCEPTED")
+                        console.log("[SSE] Plain text:", raw);
                         if (TERMINAL.includes(raw)) {
                             setResult({ status: raw, output: raw });
                             gotResult = true;
