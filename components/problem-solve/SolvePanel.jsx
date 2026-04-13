@@ -43,20 +43,11 @@ export function SolvePanel({ problem }) {
     // Detect language from code content
     const detectLanguageFromCode = (code) => {
         if (!code || code.trim().length === 0) return null;
-        
+
         const codeLower = code.toLowerCase();
-        
-        // Check for Python patterns
-        if (codeLower.includes('def ') || 
-            codeLower.includes('import ') && !codeLower.includes('#include') ||
-            codeLower.includes('print(') && !codeLower.includes('cout') ||
-            codeLower.includes(':#') ||
-            codeLower.match(/\blist\(|\bdict\(|\btuple\(/)) {
-            return 'python';
-        }
-        
-        // Check for C++ patterns
-        if (codeLower.includes('#include') || 
+
+        // Check C++ first — most distinctive markers
+        if (codeLower.includes('#include') ||
             codeLower.includes('using namespace') ||
             codeLower.includes('cout') ||
             codeLower.includes('cin') ||
@@ -64,25 +55,36 @@ export function SolvePanel({ problem }) {
             codeLower.includes('int main()')) {
             return 'cpp';
         }
-        
-        // Check for Java patterns
-        if (codeLower.includes('public class') || 
+
+        // Check Java before Python — `import java.` is unambiguous
+        if (codeLower.includes('public class') ||
             codeLower.includes('public static void main') ||
-            codeLower.includes('system.out.println') ||
-            codeLower.includes('import java.')) {
+            codeLower.includes('system.out.') ||
+            codeLower.includes('import java.') ||
+            codeLower.includes('import javax.')) {
             return 'java';
         }
-        
-        // Check for JavaScript patterns
-        if (codeLower.includes('function ') && !codeLower.includes('def ') ||
-            codeLower.includes('const ') ||
-            codeLower.includes('let ') ||
-            codeLower.includes('var ') ||
-            codeLower.includes('console.log') ||
-            codeLower.includes('=>')) {
+
+        // Check Python — only after ruling out C++ and Java
+        if (codeLower.includes('def ') ||
+            codeLower.includes('elif ') ||
+            codeLower.includes('print(') ||
+            codeLower.includes(':#') ||
+            codeLower.match(/\blist\(|\bdict\(|\btuple\(/) ||
+            codeLower.match(/^from\s+\S+\s+import\s+/m) ||
+            (codeLower.includes('import ') && !codeLower.includes('import java') && !codeLower.includes('import javax') && !codeLower.includes('#include'))) {
+            return 'python';
+        }
+
+        // Check JavaScript last — many keywords overlap with other languages
+        if (codeLower.includes('console.log') ||
+            codeLower.includes('=>') ||
+            codeLower.match(/\bconst\s+\w+\s*=/) ||
+            codeLower.match(/\blet\s+\w+\s*=/) ||
+            codeLower.match(/\bvar\s+\w+\s*=/)) {
             return 'javascript';
         }
-        
+
         return null;
     };
 
