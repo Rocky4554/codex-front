@@ -37,6 +37,15 @@ async function proxyRequest(request, { params }) {
     responseHeaders.delete("content-encoding");
     responseHeaders.delete("content-length");
 
+    // SSE requires specific headers for streaming to work through the proxy
+    const isSSE = backendRes.headers.get("content-type")?.includes("text/event-stream");
+    if (isSSE) {
+        responseHeaders.set("content-type", "text/event-stream");
+        responseHeaders.set("cache-control", "no-cache, no-transform");
+        responseHeaders.set("x-accel-buffering", "no");
+        responseHeaders.set("connection", "keep-alive");
+    }
+
     return new NextResponse(backendRes.body, {
         status: backendRes.status,
         headers: responseHeaders,

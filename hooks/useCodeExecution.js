@@ -49,41 +49,38 @@ export function useCodeExecution() {
 
             while (true) {
                 const { done, value } = await reader.read();
-                if (done) {
-                    console.log("[SSE] Stream ended");
-                    break;
-                }
+                if (done) break;
 
                 buffer += decoder.decode(value, { stream: true });
-                console.log("[SSE] Buffer:", buffer);
-                
                 const lines = buffer.split("\n");
                 buffer = lines.pop() || "";
 
                 for (const line of lines) {
-                    console.log("[SSE] Line:", line);
-                    if (line.startsWith("event:")) {
-                        console.log("[SSE] Event type:", line.slice(6).trim());
-                        continue;
-                    }
+                    if (line.startsWith("event:")) continue;
                     if (!line.startsWith("data:")) continue;
                     const raw = line.slice(5).trim();
-                    console.log("[SSE] Data:", raw);
                     if (!raw || raw === "[DONE]") continue;
                     try {
                         const event = JSON.parse(raw);
-                        console.log("[SSE] Parsed event:", event);
-                        setResult(event);
+                        // Map backend fields → frontend expected fields
+                        const mapped = {
+                            status: event.status,
+                            output: event.stdout,
+                            stderr: event.stderr,
+                            testsPassed: event.testsPassed,
+                            totalTests: event.totalTests,
+                            executionTimeMs: event.executionTimeMs,
+                        };
+                        setResult(mapped);
                         gotResult = true;
                         if (TERMINAL.includes(event.status)) {
                             reader.cancel();
                             return;
                         }
                     } catch {
-                        // Plain-text terminal status (e.g. "ACCEPTED")
-                        console.log("[SSE] Plain text:", raw);
+                        // Plain-text terminal status fallback
                         if (TERMINAL.includes(raw)) {
-                            setResult({ status: raw, output: raw });
+                            setResult({ status: raw });
                             gotResult = true;
                             reader.cancel();
                             return;
