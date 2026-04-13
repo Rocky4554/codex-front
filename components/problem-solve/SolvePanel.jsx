@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useEditorStore } from "@/store/editorStore";
 import { useCodeExecution } from "@/hooks/useCodeExecution";
 import { LanguageSelector } from "@/components/editor/LanguageSelector";
+import { ErrorDisplay } from "@/components/ErrorDisplay";
+import { toast } from "sonner";
 
 const STATUS_STYLES = {
     ACCEPTED: "text-emerald-400",
@@ -38,8 +40,97 @@ export function SolvePanel({ problem }) {
         if (selectedLanguage) setCode(selectedLanguage.id, val || "");
     };
 
+    // Detect language from code content
+    const detectLanguageFromCode = (code) => {
+        if (!code || code.trim().length === 0) return null;
+        
+        const codeLower = code.toLowerCase();
+        
+        // Check for Python patterns
+        if (codeLower.includes('def ') || 
+            codeLower.includes('import ') && !codeLower.includes('#include') ||
+            codeLower.includes('print(') && !codeLower.includes('cout') ||
+            codeLower.includes(':#') ||
+            codeLower.match(/\blist\(|\bdict\(|\btuple\(/)) {
+            return 'python';
+        }
+        
+        // Check for C++ patterns
+        if (codeLower.includes('#include') || 
+            codeLower.includes('using namespace') ||
+            codeLower.includes('cout') ||
+            codeLower.includes('cin') ||
+            codeLower.includes('vector<') ||
+            codeLower.includes('int main()')) {
+            return 'cpp';
+        }
+        
+        // Check for Java patterns
+        if (codeLower.includes('public class') || 
+            codeLower.includes('public static void main') ||
+            codeLower.includes('system.out.println') ||
+            codeLower.includes('import java.')) {
+            return 'java';
+        }
+        
+        // Check for JavaScript patterns
+        if (codeLower.includes('function ') && !codeLower.includes('def ') ||
+            codeLower.includes('const ') ||
+            codeLower.includes('let ') ||
+            codeLower.includes('var ') ||
+            codeLower.includes('console.log') ||
+            codeLower.includes('=>')) {
+            return 'javascript';
+        }
+        
+        return null;
+    };
+
+    // Validate language matches code
+    const validateLanguageMatch = () => {
+        if (!selectedLanguage || !currentCode) return true;
+        
+        const detectedLang = detectLanguageFromCode(currentCode);
+        if (!detectedLang) return true; // Can't detect, allow it
+        
+        const selectedLangName = selectedLanguage.name?.toLowerCase() || '';
+        
+        // Map detected language to expected language name patterns
+        const langMap = {
+            'python': ['python'],
+            'cpp': ['c++', 'cpp'],
+            'java': ['java'],
+            'javascript': ['javascript', 'js']
+        };
+        
+        const expectedPatterns = langMap[detectedLang] || [];
+        const isMatch = expectedPatterns.some(pattern => selectedLangName.includes(pattern));
+        
+        if (!isMatch) {
+            const langDisplayNames = {
+                'python': 'Python',
+                'cpp': 'C++',
+                'java': 'Java',
+                'javascript': 'JavaScript'
+            };
+            
+            toast.error(
+                `Language Mismatch Detected`,
+                {
+                    description: `Your code appears to be ${langDisplayNames[detectedLang]}, but you have ${selectedLanguage.name} selected. Please select the correct language from the dropdown.`,
+                    duration: 5000,
+                }
+            );
+            return false;
+        }
+        
+        return true;
+    };
+
     const handleRun = async () => {
         if (!problem?.id || !selectedLanguage?.id) return;
+        if (!validateLanguageMatch()) return;
+        
         setConsoleTab("result");
         await execute({
             problemId: problem.id,
@@ -50,6 +141,8 @@ export function SolvePanel({ problem }) {
 
     const handleSubmit = async () => {
         if (!problem?.id || !selectedLanguage?.id) return;
+        if (!validateLanguageMatch()) return;
+        
         setConsoleTab("result");
         reset();
         await execute({
@@ -197,7 +290,15 @@ export function SolvePanel({ problem }) {
                                         </div>
                                     )}
 
-                                    {result.message && (
+                                    {result.status === "COMPILATION_ERROR" && (
+                                        <ErrorDisplay stderr={result.stderr} type="COMPILATION_ERROR" />
+                                    )}
+
+                                    {result.status === "RUNTIME_ERROR" && (
+                                        <ErrorDisplay stderr={result.stderr} type="RUNTIME_ERROR" />
+                                    )}
+
+                                    {result.message && !["COMPILATION_ERROR", "RUNTIME_ERROR"].includes(result.status) && (
                                         <div>
                                             <p className="text-zinc-500 mb-1">Details</p>
                                             <p className="text-zinc-400">{result.message}</p>
