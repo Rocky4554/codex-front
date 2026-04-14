@@ -30,10 +30,13 @@ export function useCodeExecution() {
             if (!submissionId) throw new Error("No submission ID returned");
 
             // Step 2: Stream SSE events for real-time results
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 90_000); // 90s max
             const response = await fetch(
                 `/api/proxy/submissions/${submissionId}/events`,
                 {
                     headers: { Accept: "text/event-stream" },
+                    signal: controller.signal,
                 }
             );
 
@@ -74,6 +77,7 @@ export function useCodeExecution() {
                         setResult(mapped);
                         gotResult = true;
                         if (TERMINAL.includes(event.status)) {
+                            clearTimeout(timeout);
                             reader.cancel();
                             return;
                         }
@@ -82,6 +86,7 @@ export function useCodeExecution() {
                         if (TERMINAL.includes(raw)) {
                             setResult({ status: raw });
                             gotResult = true;
+                            clearTimeout(timeout);
                             reader.cancel();
                             return;
                         }
@@ -91,10 +96,14 @@ export function useCodeExecution() {
                 }
             }
         } catch (err) {
+            clearTimeout(timeout);
             // Don't show a network error if we already received a valid result
             // (server closing the SSE stream abruptly after sending the result)
             if (!gotResult) {
-                setError(err.message || "Execution failed");
+                const msg = err.name === "AbortError"
+                    ? "Execution timed out — please try again"
+                    : (err.message || "Execution failed");
+                setError(msg);
             }
         } finally {
             setIsRunning(false);
