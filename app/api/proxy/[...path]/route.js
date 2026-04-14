@@ -1,5 +1,8 @@
 import { NextResponse } from "next/server";
 
+// Allow SSE routes up to 5 minutes (matches backend SseEmitter timeout)
+export const maxDuration = 60;
+
 const BACKEND_URL = process.env.BACKEND_URL;
 
 async function proxyRequest(request, { params }) {

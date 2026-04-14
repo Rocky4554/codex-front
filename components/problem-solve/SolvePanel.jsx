@@ -5,6 +5,7 @@ import { useEditorStore } from "@/store/editorStore";
 import { useCodeExecution } from "@/hooks/useCodeExecution";
 import { LanguageSelector } from "@/components/editor/LanguageSelector";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
+import { useSampleTestCases } from "@/hooks/useSampleTestCases";
 import { toast } from "sonner";
 
 const STATUS_STYLES = {
@@ -33,6 +34,7 @@ export function SolvePanel({ problem }) {
     const { selectedLanguage, code, setCode, theme } = useEditorStore();
     const { execute, isRunning, result, error, reset } = useCodeExecution();
     const [consoleTab, setConsoleTab] = useState("testcase"); // "testcase" | "result"
+    const { data: sampleTestCases, isLoading: testCasesLoading } = useSampleTestCases(problem?.id);
 
     const currentCode = selectedLanguage ? (code[selectedLanguage.id] || "") : "";
 
@@ -248,9 +250,30 @@ export function SolvePanel({ problem }) {
                 {/* Console Content */}
                 <div className="flex-1 overflow-auto p-3 font-mono text-xs">
                     {consoleTab === "testcase" && (
-                        <div className="text-zinc-400 space-y-2">
-                            <p className="text-zinc-500">Sample test case will run against your code.</p>
-                            <p className="text-zinc-600">Click <span className="text-zinc-400">Run</span> to test, <span className="text-zinc-400">Submit</span> to evaluate all test cases.</p>
+                        <div className="space-y-3">
+                            {testCasesLoading && (
+                                <p className="text-zinc-500">Loading test cases...</p>
+                            )}
+                            {!testCasesLoading && (!sampleTestCases || sampleTestCases.length === 0) && (
+                                <p className="text-zinc-500">No sample test cases available.</p>
+                            )}
+                            {sampleTestCases && sampleTestCases.map((tc, i) => (
+                                <div key={tc.id} className="space-y-2">
+                                    <p className="text-zinc-400 font-medium">Case {i + 1}</p>
+                                    <div>
+                                        <p className="text-zinc-500 text-xs mb-1">Input</p>
+                                        <pre className="bg-[#09090b] border border-zinc-800 rounded p-2 text-zinc-300 whitespace-pre-wrap overflow-auto max-h-24">
+                                            {tc.input}
+                                        </pre>
+                                    </div>
+                                    <div>
+                                        <p className="text-zinc-500 text-xs mb-1">Expected Output</p>
+                                        <pre className="bg-[#09090b] border border-zinc-800 rounded p-2 text-zinc-300 whitespace-pre-wrap overflow-auto max-h-24">
+                                            {tc.expectedOutput}
+                                        </pre>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     )}
 

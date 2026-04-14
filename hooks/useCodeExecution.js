@@ -17,6 +17,7 @@ export function useCodeExecution() {
         setError(null);
 
         let gotResult = false;
+        let timeoutId = null;
 
         try {
             // Step 1: Create the submission
@@ -31,7 +32,7 @@ export function useCodeExecution() {
 
             // Step 2: Stream SSE events for real-time results
             const controller = new AbortController();
-            const timeout = setTimeout(() => controller.abort(), 90_000); // 90s max
+            timeoutId = setTimeout(() => controller.abort(), 90_000); // 90s max
             const response = await fetch(
                 `/api/proxy/submissions/${submissionId}/events`,
                 {
@@ -77,7 +78,7 @@ export function useCodeExecution() {
                         setResult(mapped);
                         gotResult = true;
                         if (TERMINAL.includes(event.status)) {
-                            clearTimeout(timeout);
+                            clearTimeout(timeoutId);
                             reader.cancel();
                             return;
                         }
@@ -86,7 +87,7 @@ export function useCodeExecution() {
                         if (TERMINAL.includes(raw)) {
                             setResult({ status: raw });
                             gotResult = true;
-                            clearTimeout(timeout);
+                            clearTimeout(timeoutId);
                             reader.cancel();
                             return;
                         }
@@ -96,7 +97,7 @@ export function useCodeExecution() {
                 }
             }
         } catch (err) {
-            clearTimeout(timeout);
+            clearTimeout(timeoutId);
             // Don't show a network error if we already received a valid result
             // (server closing the SSE stream abruptly after sending the result)
             if (!gotResult) {
