@@ -18,6 +18,11 @@ export function useCodeExecution() {
 
         let gotResult = false;
         let timeoutId = null;
+        let submissionId = null;
+        const TERMINAL = [
+            "ACCEPTED", "WRONG_ANSWER", "TIME_LIMIT_EXCEEDED",
+            "RUNTIME_ERROR", "COMPILATION_ERROR", "MEMORY_LIMIT_EXCEEDED",
+        ];
 
         try {
             // Step 1: Create the submission
@@ -27,89 +32,119 @@ export function useCodeExecution() {
                 sourceCode,
             });
 
-            const submissionId = data.submissionId;
+            submissionId = data.submissionId;
             if (!submissionId) throw new Error("No submission ID returned");
 
-            // Step 2: Stream SSE events for real-time results
+            // Step 2: Try SSE for real-time results (60s Vercel limit)
             const controller = new AbortController();
-            timeoutId = setTimeout(() => controller.abort(), 90_000); // 90s max
-            const response = await fetch(
-                `/api/proxy/submissions/${submissionId}/events`,
-                {
-                    headers: { Accept: "text/event-stream" },
-                    signal: controller.signal,
-                }
-            );
+            timeoutId = setTimeout(() => controller.abort(), 60_000); // 60s Vercel max
 
-            if (!response.ok) throw new Error(`SSE stream failed: ${response.status}`);
+            try {
+                const response = await fetch(
+                    `/api/proxy/submissions/${submissionId}/events`,
+                    {
+                        headers: { Accept: "text/event-stream" },
+                        signal: controller.signal,
+                    }
+                );
 
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let buffer = "";
-            const TERMINAL = [
-                "ACCEPTED", "WRONG_ANSWER", "TIME_LIMIT_EXCEEDED",
-                "RUNTIME_ERROR", "COMPILATION_ERROR", "MEMORY_LIMIT_EXCEEDED",
-            ];
+                if (!response.ok) throw new Error(`SSE stream failed: ${response.status}`);
 
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
+                const reader = response.body.getReader();
+                const decoder = new TextDecoder();
+                let buffer = "";
 
-                buffer += decoder.decode(value, { stream: true });
-                const lines = buffer.split("\n");
-                buffer = lines.pop() || "";
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
 
-                for (const line of lines) {
-                    if (line.startsWith("event:")) continue;
-                    if (!line.startsWith("data:")) continue;
-                    const raw = line.slice(5).trim();
-                    if (!raw || raw === "[DONE]") continue;
-                    try {
-                        const event = JSON.parse(raw);
-                        // Map backend fields → frontend expected fields
-                        const mapped = {
-                            status: event.status,
-                            output: event.stdout,
-                            stderr: event.stderr,
-                            testsPassed: event.testsPassed,
-                            totalTests: event.totalTests,
-                            executionTimeMs: event.executionTimeMs,
-                        };
-                        setResult(mapped);
-                        gotResult = true;
-                        if (TERMINAL.includes(event.status)) {
-                            clearTimeout(timeoutId);
-                            reader.cancel();
-                            return;
-                        }
-                    } catch {
-                        // Plain-text terminal status fallback
-                        if (TERMINAL.includes(raw)) {
-                            setResult({ status: raw });
+                    buffer += decoder.decode(value, { stream: true });
+                    const lines = buffer.split("\n");
+                    buffer = lines.pop() || "";
+
+                    for (const line of lines) {
+                        if (line.startsWith("event:")) continue;
+                        if (!line.startsWith("data:")) continue;
+                        const raw = line.slice(5).trim();
+                        if (!raw || raw === "[DONE]") continue;
+                        try {
+                            const event = JSON.parse(raw);
+                            const mapped = {
+                                status: event.status,
+                                output: event.stdout,
+                                stderr: event.stderr,
+                                testsPassed: event.testsPassed,
+                                totalTests: event.totalTests,
+                                executionTimeMs: event.executionTimeMs,
+                            };
+                            setResult(mapped);
                             gotResult = true;
-                            clearTimeout(timeoutId);
-                            reader.cancel();
-                            return;
+                            if (TERMINAL.includes(event.status)) {
+                                clearTimeout(timeoutId);
+                                reader.cancel();
+                                return;
+                            }
+                        } catch {
+                            if (TERMINAL.includes(raw)) {
+                                setResult({ status: raw });
+                                gotResult = true;
+                                clearTimeout(timeoutId);
+                                reader.cancel();
+                                return;
+                            }
+                            setResult((prev) => ({ ...(prev || {}), output: raw }));
+                            gotResult = true;
                         }
-                        setResult((prev) => ({ ...(prev || {}), output: raw }));
-                        gotResult = true;
                     }
                 }
+            } catch (sseErr) {
+                clearTimeout(timeoutId);
+                // If SSE timeout (AbortError) and no result yet → fall back to polling
+                if (sseErr.name === "AbortError" && !gotResult) {
+                    setResult({ status: "RUNNING", output: "Taking longer than expected... polling for result." });
+                    await pollForResult(submissionId, TERMINAL);
+                    return;
+                }
+                throw sseErr;
             }
         } catch (err) {
             clearTimeout(timeoutId);
-            // Don't show a network error if we already received a valid result
-            // (server closing the SSE stream abruptly after sending the result)
             if (!gotResult) {
-                const msg = err.name === "AbortError"
-                    ? "Execution timed out — please try again"
-                    : (err.message || "Execution failed");
+                const msg = err.message || "Execution failed";
                 setError(msg);
             }
         } finally {
             setIsRunning(false);
         }
     }, []);
+
+    // Poll endpoint until terminal status reached (max 5 min)
+    const pollForResult = async (submissionId, TERMINAL) => {
+        const startTime = Date.now();
+        const MAX_POLL_TIME = 5 * 60 * 1000; // 5 min max
+        const POLL_INTERVAL = 2000; // 2s between polls
+
+        while (Date.now() - startTime < MAX_POLL_TIME) {
+            try {
+                const { data } = await api.get(`/submissions/${submissionId}`);
+                const mapped = {
+                    status: data.status,
+                    output: data.stdout,
+                    stderr: data.stderr,
+                    testsPassed: data.passedTestCases,
+                    totalTests: data.totalTestCases,
+                    executionTimeMs: data.executionTimeMs,
+                };
+                setResult(mapped);
+                if (TERMINAL.includes(data.status)) return;
+            } catch (err) {
+                setError(`Polling failed: ${err.message}`);
+                return;
+            }
+            await new Promise((r) => setTimeout(r, POLL_INTERVAL));
+        }
+        setError("Execution took too long (>5 min)");
+    };
 
     const reset = useCallback(() => {
         setResult(null);
