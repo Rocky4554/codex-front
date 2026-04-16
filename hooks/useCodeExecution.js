@@ -99,9 +99,13 @@ export function useCodeExecution() {
                 }
             } catch (sseErr) {
                 clearTimeout(timeoutId);
-                // If SSE timeout (AbortError) and no result yet → fall back to polling
-                if (sseErr.name === "AbortError" && !gotResult) {
-                    setResult({ status: "RUNNING", output: "Taking longer than expected... polling for result." });
+                // Fall back to polling on timeout OR gateway errors (504, 502, etc.)
+                const shouldPoll = !gotResult && (
+                    sseErr.name === "AbortError" ||
+                    sseErr.message?.startsWith("SSE stream failed")
+                );
+                if (shouldPoll) {
+                    setResult({ status: "RUNNING" });
                     await pollForResult(submissionId, TERMINAL);
                     return;
                 }
@@ -110,8 +114,7 @@ export function useCodeExecution() {
         } catch (err) {
             clearTimeout(timeoutId);
             if (!gotResult) {
-                const msg = err.message || "Execution failed";
-                setError(msg);
+                setError("Something went wrong. Please try again.");
             }
         } finally {
             setIsRunning(false);
@@ -138,12 +141,12 @@ export function useCodeExecution() {
                 setResult(mapped);
                 if (TERMINAL.includes(data.status)) return;
             } catch (err) {
-                setError(`Polling failed: ${err.message}`);
+                setError("Something went wrong. Please try again.");
                 return;
             }
             await new Promise((r) => setTimeout(r, POLL_INTERVAL));
         }
-        setError("Execution took too long (>5 min)");
+        setError("Execution is taking longer than expected. Please try again.");
     };
 
     const reset = useCallback(() => {
