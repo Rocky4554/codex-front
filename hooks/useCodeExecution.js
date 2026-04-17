@@ -141,11 +141,13 @@ export function useCodeExecution() {
                 setResult(mapped);
                 if (TERMINAL.includes(data.status)) return;
             } catch (err) {
+                setResult(null);
                 setError("Something went wrong. Please try again.");
                 return;
             }
             await new Promise((r) => setTimeout(r, POLL_INTERVAL));
         }
+        setResult(null);
         setError("Execution is taking longer than expected. Please try again.");
     };
 
