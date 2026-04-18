@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useProblemSubmissions } from "@/hooks/useProblemSubmissions";
 import { useLanguages } from "@/hooks/useLanguages";
+import { useEditorStore } from "@/store/editorStore";
 
 function StatusBadge({ status }) {
     const s = String(status || "").toUpperCase();
@@ -39,6 +40,13 @@ function SubmissionsList({ problemId }) {
     const languageName = (id) => {
         const lang = (languages || []).find((l) => l.id === id);
         return lang?.name || "—";
+    };
+
+    const handleSubmissionClick = (sub) => {
+        if (!sub.sourceCode) return;
+        const lang = (languages || []).find((l) => l.id === sub.languageId);
+        if (lang) useEditorStore.getState().setLanguage(lang);
+        useEditorStore.getState().setCode(sub.languageId, sub.sourceCode);
     };
 
     if (isLoading) {
@@ -81,7 +89,12 @@ function SubmissionsList({ problemId }) {
                 </thead>
                 <tbody className="divide-y divide-zinc-800">
                     {submissions.map((sub) => (
-                        <tr key={sub.id} className="hover:bg-zinc-800/30 transition-colors">
+                        <tr
+                            key={sub.id}
+                            onClick={() => handleSubmissionClick(sub)}
+                            className={`hover:bg-zinc-800/30 transition-colors ${sub.sourceCode ? "cursor-pointer" : "cursor-default"}`}
+                            title={sub.sourceCode ? "Click to load code in editor" : ""}
+                        >
                             <td className="px-4 py-3">
                                 <StatusBadge status={sub.status} />
                             </td>

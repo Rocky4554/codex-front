@@ -1,8 +1,9 @@
 "use client";
 import Editor from "@monaco-editor/react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useEditorStore } from "@/store/editorStore";
 import { useCodeExecution } from "@/hooks/useCodeExecution";
+import { useRunExecution } from "@/hooks/useRunExecution";
 import { LanguageSelector } from "@/components/editor/LanguageSelector";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
 import { useSampleTestCases } from "@/hooks/useSampleTestCases";
@@ -31,12 +32,21 @@ const STATUS_LABELS = {
 };
 
 export function SolvePanel({ problem }) {
-    const { selectedLanguage, code, setCode, theme } = useEditorStore();
+    const { selectedLanguage, code, setCode, theme, currentProblemId } = useEditorStore();
     const { execute, isRunning, result, error, reset } = useCodeExecution();
-    const [consoleTab, setConsoleTab] = useState("testcase"); // "testcase" | "result"
+    const { run, isRunning: isRunCodeRunning, result: runResult, error: runError, reset: runReset } = useRunExecution();
+    const [consoleTab, setConsoleTab] = useState("testcase");
     const { data: sampleTestCases, isLoading: testCasesLoading } = useSampleTestCases(problem?.id);
 
-    const currentCode = selectedLanguage ? (code[selectedLanguage.id] || "") : "";
+    useEffect(() => {
+        if (problem?.id) {
+            useEditorStore.getState().setProblemId(problem.id);
+        }
+    }, [problem?.id]);
+
+    const currentCode = selectedLanguage && currentProblemId
+        ? (code[currentProblemId]?.[selectedLanguage.id] || "")
+        : "";
 
     const handleCodeChange = (val) => {
         if (selectedLanguage) setCode(selectedLanguage.id, val || "");
@@ -134,26 +144,19 @@ export function SolvePanel({ problem }) {
     const handleRun = async () => {
         if (!problem?.id || !selectedLanguage?.id) return;
         if (!validateLanguageMatch()) return;
-        
         setConsoleTab("result");
-        await execute({
-            problemId: problem.id,
-            languageId: selectedLanguage.id,
-            sourceCode: currentCode,
-        });
+        runReset();
+        reset();
+        await run({ problemId: problem.id, languageId: selectedLanguage.id, sourceCode: currentCode });
     };
 
     const handleSubmit = async () => {
         if (!problem?.id || !selectedLanguage?.id) return;
         if (!validateLanguageMatch()) return;
-        
         setConsoleTab("result");
+        runReset();
         reset();
-        await execute({
-            problemId: problem.id,
-            languageId: selectedLanguage.id,
-            sourceCode: currentCode,
-        });
+        await execute({ problemId: problem.id, languageId: selectedLanguage.id, sourceCode: currentCode });
     };
 
     const statusStyle = result?.status ? (STATUS_STYLES[result.status] || "text-zinc-300") : "";
@@ -228,10 +231,10 @@ export function SolvePanel({ problem }) {
                     <div className="flex items-center gap-2">
                         <button
                             onClick={handleRun}
-                            disabled={isRunning || !selectedLanguage}
+                            disabled={isRunning || isRunCodeRunning || !selectedLanguage}
                             className="bg-zinc-800 text-zinc-300 hover:bg-zinc-700 hover:text-white px-4 py-1.5 rounded-lg text-xs font-semibold transition-all border border-zinc-700 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                         >
-                            {isRunning ? (
+                            {isRunCodeRunning ? (
                                 <><div className="w-3 h-3 border border-zinc-400 border-t-transparent rounded-full animate-spin" /> Running...</>
                             ) : (
                                 <><span className="material-symbols-outlined text-[14px]">play_arrow</span> Run</>
@@ -239,10 +242,10 @@ export function SolvePanel({ problem }) {
                         </button>
                         <button
                             onClick={handleSubmit}
-                            disabled={isRunning || !selectedLanguage}
+                            disabled={isRunning || isRunCodeRunning || !selectedLanguage}
                             className="bg-emerald-500 hover:bg-emerald-600 text-[#09090b] px-4 py-1.5 rounded-lg text-xs font-bold transition-all shadow-[0_0_15px_rgba(16,183,127,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
                         >
-                            Submit
+                            {isRunning ? "Submitting..." : "Submit"}
                         </button>
                     </div>
                 </div>
@@ -279,21 +282,54 @@ export function SolvePanel({ problem }) {
 
                     {consoleTab === "result" && (
                         <div className="space-y-3">
-                            {isRunning && (
+                            {(isRunning || isRunCodeRunning) && (
                                 <div className="flex items-center gap-2 text-blue-400">
                                     <div className="w-3 h-3 border border-blue-400 border-t-transparent rounded-full animate-spin" />
-                                    <span>Executing...</span>
+                                    <span>{isRunning ? "Submitting..." : "Running sample cases..."}</span>
                                 </div>
                             )}
 
-                            {error && (
+                            {(error || runError) && !isRunning && !isRunCodeRunning && (
                                 <div className="text-red-400 space-y-1">
                                     <p className="font-semibold">Error</p>
-                                    <p className="text-red-300/80">{error}</p>
+                                    <p className="text-red-300/80">{error || runError}</p>
                                 </div>
                             )}
 
-                            {result && !isRunning && (
+                            {/* Run result — ephemeral, sample cases only */}
+                            {runResult && !isRunCodeRunning && (
+                                <div className="space-y-3">
+                                    <div className="flex items-center justify-between">
+                                        <p className={`font-bold text-sm ${STATUS_STYLES[runResult.status] || "text-zinc-300"}`}>
+                                            {STATUS_LABELS[runResult.status] || runResult.status}
+                                        </p>
+                                        <span className="text-zinc-600 text-xs">sample cases only</span>
+                                    </div>
+                                    {runResult.testResults && runResult.testResults.length > 0 && (
+                                        <div className="space-y-2">
+                                            {runResult.testResults.map((tr, i) => (
+                                                <div key={i} className={`p-2 rounded border ${tr.passed ? "border-emerald-800 bg-emerald-900/20" : "border-red-800 bg-red-900/20"}`}>
+                                                    <p className={`text-xs font-semibold mb-1 ${tr.passed ? "text-emerald-400" : "text-red-400"}`}>
+                                                        Case {i + 1}: {tr.passed ? "Passed" : "Failed"}
+                                                    </p>
+                                                    <p className="text-zinc-500 text-xs">Input: <span className="text-zinc-300 font-mono">{tr.input}</span></p>
+                                                    <p className="text-zinc-500 text-xs">Expected: <span className="text-zinc-300 font-mono">{tr.expectedOutput}</span></p>
+                                                    {!tr.passed && <p className="text-zinc-500 text-xs">Got: <span className="text-red-300 font-mono">{tr.actualOutput}</span></p>}
+                                                </div>
+                                            ))}
+                                        </div>
+                                    )}
+                                    {(runResult.status === "COMPILATION_ERROR" || runResult.status === "RUNTIME_ERROR") && (
+                                        <ErrorDisplay stderr={runResult.stderr} type={runResult.status} />
+                                    )}
+                                    <p className="text-zinc-500 text-xs">
+                                        Tests: <span className="text-white">{runResult.testsPassed}/{runResult.totalTests}</span>
+                                    </p>
+                                </div>
+                            )}
+
+                            {/* Submit result */}
+                            {result && !isRunning && !runResult && (
                                 <div className="space-y-3">
                                     <p className={`font-bold text-sm ${statusStyle}`}>{statusLabel}</p>
 
@@ -315,13 +351,8 @@ export function SolvePanel({ problem }) {
                                         </div>
                                     )}
 
-                                    {result.status === "COMPILATION_ERROR" && (
-                                        <ErrorDisplay stderr={result.stderr} type="COMPILATION_ERROR" />
-                                    )}
-
-                                    {result.status === "RUNTIME_ERROR" && (
-                                        <ErrorDisplay stderr={result.stderr} type="RUNTIME_ERROR" />
-                                    )}
+                                    {result.status === "COMPILATION_ERROR" && <ErrorDisplay stderr={result.stderr} type="COMPILATION_ERROR" />}
+                                    {result.status === "RUNTIME_ERROR" && <ErrorDisplay stderr={result.stderr} type="RUNTIME_ERROR" />}
 
                                     {result.message && !["COMPILATION_ERROR", "RUNTIME_ERROR"].includes(result.status) && (
                                         <div>
@@ -338,7 +369,7 @@ export function SolvePanel({ problem }) {
                                 </div>
                             )}
 
-                            {!result && !isRunning && !error && (
+                            {!result && !runResult && !isRunning && !isRunCodeRunning && !error && !runError && (
                                 <p className="text-zinc-600">Run or submit your code to see results.</p>
                             )}
                         </div>

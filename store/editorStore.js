@@ -1,23 +1,47 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
-export const useEditorStore = create((set, get) => ({
-    // Full language object from API: { id (UUID), name, ... }
-    // Falls back to null until languages are loaded
-    selectedLanguage: null,
-    code: {},
-    theme: "vs-dark",
+export const useEditorStore = create(
+    persist(
+        (set, get) => ({
+            selectedLanguage: null,
+            // Structure: { [problemId]: { [langId]: code } }
+            code: {},
+            currentProblemId: null,
+            theme: "vs-dark",
 
-    setLanguage: (languageObj) => set({ selectedLanguage: languageObj }),
+            setLanguage: (languageObj) => set({ selectedLanguage: languageObj }),
 
-    setCode: (langId, code) =>
-        set((state) => ({ code: { ...state.code, [langId]: code } })),
+            setProblemId: (problemId) => set({ currentProblemId: problemId }),
 
-    getCode: () => {
-        const { code, selectedLanguage } = get();
-        return selectedLanguage ? (code[selectedLanguage.id] || "") : "";
-    },
+            setCode: (langId, value) =>
+                set((state) => {
+                    const pid = state.currentProblemId;
+                    if (!pid) return state;
+                    return {
+                        code: {
+                            ...state.code,
+                            [pid]: {
+                                ...(state.code[pid] || {}),
+                                [langId]: value,
+                            },
+                        },
+                    };
+                }),
 
-    setTheme: (theme) => set({ theme }),
+            getCode: () => {
+                const { code, currentProblemId, selectedLanguage } = get();
+                if (!currentProblemId || !selectedLanguage) return "";
+                return code[currentProblemId]?.[selectedLanguage.id] || "";
+            },
 
-    resetCode: (starterCode) => set({ code: starterCode || {} }),
-}));
+            setTheme: (theme) => set({ theme }),
+
+            resetCode: (starterCode) => set({ code: starterCode || {} }),
+        }),
+        {
+            name: "codex-code-v1",
+            partialize: (state) => ({ code: state.code, theme: state.theme }),
+        }
+    )
+);
