@@ -22,7 +22,7 @@ export function Navbar() {
     return (
         <nav className="h-12 flex items-center justify-between px-6 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur sticky top-0 z-50">
             <Link href="/problems" className="text-white font-bold text-lg">
-                ⚡ CodeArena
+                ⚡ SprintCode
             </Link>
             <div className="flex items-center gap-4">
                 {!hydrated ? null : isLoggedIn ? (

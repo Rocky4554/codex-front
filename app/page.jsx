@@ -12,7 +12,7 @@ export default function Home() {
             <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-500">
               <span className="material-symbols-outlined text-[20px]">code</span>
             </div>
-            <span className="font-display text-xl font-bold tracking-tight text-white">Codex</span>
+            <span className="font-display text-xl font-bold tracking-tight text-white">SprintCode</span>
           </div>
 
           <nav className="hidden md:flex items-center gap-6">
@@ -207,10 +207,10 @@ export default function Home() {
               <div className="flex h-6 w-6 items-center justify-center rounded bg-emerald-500/20 text-emerald-500">
                 <span className="material-symbols-outlined text-[16px]">code</span>
               </div>
-              <span className="font-display text-lg font-bold text-white">Codex</span>
+              <span className="font-display text-lg font-bold text-white">SprintCode</span>
             </div>
             <p className="text-sm text-zinc-400">
-              © 2024 Codex Platform. All rights reserved.
+              © 2024 SprintCode. All rights reserved.
             </p>
             <div className="flex gap-6">
               <a className="text-zinc-400 hover:text-emerald-500 transition-colors" href="#">

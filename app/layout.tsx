@@ -18,7 +18,7 @@ import { ErrorReporter } from "@/components/ErrorReporter";
 import "./globals.css";
 
 export const metadata = {
-  title: "CodeArena",
+  title: "SprintCode",
   description: "Practice coding problems and ace your interviews",
 };
 

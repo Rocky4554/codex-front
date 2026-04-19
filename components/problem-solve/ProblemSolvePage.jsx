@@ -28,7 +28,7 @@ export function ProblemSolvePage({ slug }) {
                         <div className="size-6 bg-zinc-800 rounded flex items-center justify-center text-emerald-500">
                             <span className="material-symbols-outlined text-[18px]">code</span>
                         </div>
-                        <span className="font-bold text-lg tracking-tight text-white">Codex</span>
+                        <span className="font-bold text-lg tracking-tight text-white">SprintCode</span>
                     </Link>
                     <div className="w-px h-5 bg-zinc-700" />
                     {/* Prev / Next navigation */}
