@@ -3,17 +3,20 @@ import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 import { logoutAction } from "@/app/actions/auth";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export function Navbar() {
     const { user, isLoggedIn, logout } = useAuthStore();
+    const router = useRouter();
 
     // Fix hydration mismatch with Zustand persist
     const [hydrated, setHydrated] = useState(false);
     useEffect(() => setHydrated(true), []);
 
     const handleLogout = async () => {
-        await logout(); // clear Zustand + API route cookie
-        await logoutAction(); // clear server-side cookie + redirect
+        await logoutAction(); // clear server-side cookie
+        logout(); // clear Zustand
+        router.push("/");
     };
 
     return (
