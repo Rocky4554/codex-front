@@ -1,61 +1,68 @@
 "use client";
-import { useState } from "react";
-import { useRegister } from "@/hooks/useAuth";
+
+import { useActionState, useEffect } from "react";
+import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
+import { registerAction } from "@/app/actions/auth";
 import Link from "next/link";
 
-export function RegisterForm() {
-    const [username, setUsername] = useState("");
-    const [email, setEmail] = useState("");
-    const [password, setPassword] = useState("");
-    const { mutate: register, isPending, error } = useRegister();
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <button
+            type="submit"
+            disabled={pending}
+            className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg disabled:opacity-50 transition-colors"
+        >
+            {pending ? "Creating account..." : "Create Account"}
+        </button>
+    );
+}
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        register({ username, email, password });
-    };
+export function RegisterForm() {
+    const { setAuth } = useAuthStore();
+    const router = useRouter();
+    const [state, action] = useActionState(registerAction, null);
+
+    useEffect(() => {
+        if (state?.user) {
+            setAuth(state.user);
+            router.push("/problems");
+        }
+    }, [state]);
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form action={action} className="space-y-4">
             <input
+                name="username"
                 type="text"
                 placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
                 required
             />
             <input
+                name="email"
                 type="email"
                 placeholder="Email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
                 required
             />
             <input
+                name="password"
                 type="password"
                 placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
                 required
                 minLength={6}
             />
-            {error && (
-                <p className="text-red-400 text-sm">
-                    {error.message || "Registration failed"}
-                </p>
+            {state?.error && (
+                <p className="text-red-400 text-sm">{state.error}</p>
             )}
-            <button
-                type="submit"
-                disabled={isPending}
-                className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg disabled:opacity-50 transition-colors"
-            >
-                {isPending ? "Creating account..." : "Create Account"}
-            </button>
+            <SubmitButton />
             <p className="text-zinc-500 text-sm text-center">
                 Already have an account?{" "}
-                <Link href="/login" className="text-green-400 hover:text-green-300">
+                <Link href="/auth/login" className="text-green-400 hover:text-green-300">
                     Sign In
                 </Link>
             </p>

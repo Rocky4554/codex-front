@@ -1,21 +1,19 @@
 "use client";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
-import { useRouter } from "next/navigation";
+import { logoutAction } from "@/app/actions/auth";
 import { useState, useEffect } from "react";
 
 export function Navbar() {
     const { user, isLoggedIn, logout } = useAuthStore();
-    const router = useRouter();
 
     // Fix hydration mismatch with Zustand persist
     const [hydrated, setHydrated] = useState(false);
     useEffect(() => setHydrated(true), []);
 
     const handleLogout = async () => {
-        await logout();
-        router.push("/auth/login");
-        router.refresh();
+        await logout(); // clear Zustand + API route cookie
+        await logoutAction(); // clear server-side cookie + redirect
     };
 
     return (

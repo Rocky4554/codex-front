@@ -1,49 +1,60 @@
 "use client";
-import { useState } from "react";
-import { useLogin } from "@/hooks/useAuth";
+
+import { useActionState, useEffect } from "react";
+import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
+import { useAuthStore } from "@/store/authStore";
+import { loginAction } from "@/app/actions/auth";
 import Link from "next/link";
 
-export function LoginForm() {
-    const [username, setUsername] = useState("");
-    const [password, setPassword] = useState("");
-    const { mutate: login, isPending, error } = useLogin();
+function SubmitButton() {
+    const { pending } = useFormStatus();
+    return (
+        <button
+            type="submit"
+            disabled={pending}
+            className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg disabled:opacity-50 transition-colors"
+        >
+            {pending ? "Signing in..." : "Sign In"}
+        </button>
+    );
+}
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        login({ username, password });
-    };
+export function LoginForm() {
+    const { setAuth } = useAuthStore();
+    const router = useRouter();
+    const [state, action] = useActionState(loginAction, null);
+
+    useEffect(() => {
+        if (state?.user) {
+            setAuth(state.user);
+            router.push("/problems");
+        }
+    }, [state]);
 
     return (
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form action={action} className="space-y-4">
             <input
+                name="username"
                 type="text"
                 placeholder="Username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
                 className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
                 required
             />
             <input
+                name="password"
                 type="password"
                 placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
                 required
             />
-            {error && (
-                <p className="text-red-400 text-sm">{error.message || "Login failed"}</p>
+            {state?.error && (
+                <p className="text-red-400 text-sm">{state.error}</p>
             )}
-            <button
-                type="submit"
-                disabled={isPending}
-                className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg disabled:opacity-50 transition-colors"
-            >
-                {isPending ? "Signing in..." : "Sign In"}
-            </button>
+            <SubmitButton />
             <p className="text-zinc-500 text-sm text-center">
-                Don't have an account?{" "}
-                <Link href="/register" className="text-green-400 hover:text-green-300">
+                Don&apos;t have an account?{" "}
+                <Link href="/auth/register" className="text-green-400 hover:text-green-300">
                     Register
                 </Link>
             </p>

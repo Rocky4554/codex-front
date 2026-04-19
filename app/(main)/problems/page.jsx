@@ -5,7 +5,7 @@ import { useUserProblems } from "@/hooks/useUserProblems";
 import { useAuthStore } from "@/store/authStore";
 import { CheckCircle2, Circle } from "lucide-react";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { logoutAction } from "@/app/actions/auth";
 
 function DifficultyBadge({ difficulty }) {
     const styles = {
@@ -32,7 +32,6 @@ function UserAvatar({ username }) {
 
 export default function ProblemsPage() {
     const { user, logout } = useAuthStore();
-    const router = useRouter();
     const { data: problems, isLoading: problemsLoading } = useProblems();
     const { data: userProblems } = useUserProblems();
     const [search, setSearch] = useState("");
@@ -100,7 +99,7 @@ export default function ProblemsPage() {
                                             <p className="text-xs text-slate-400 truncate">{user?.email}</p>
                                         </div>
                                         <button
-                                            onClick={async () => { await logout(); router.push("/auth/login"); router.refresh(); }}
+                                            onClick={async () => { await logout(); await logoutAction(); }}
                                             className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
                                         >
                                             <span className="material-symbols-outlined !text-[18px]">logout</span>
