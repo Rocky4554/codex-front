@@ -2,12 +2,14 @@
 import Editor from "@monaco-editor/react";
 import { useState, useEffect } from "react";
 import { useEditorStore } from "@/store/editorStore";
+import { useAuthStore } from "@/store/authStore";
 import { useCodeExecution } from "@/hooks/useCodeExecution";
 import { useRunExecution } from "@/hooks/useRunExecution";
 import { LanguageSelector } from "@/components/editor/LanguageSelector";
 import { ErrorDisplay } from "@/components/ErrorDisplay";
 import { useSampleTestCases } from "@/hooks/useSampleTestCases";
 import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 const STATUS_STYLES = {
     ACCEPTED: "text-emerald-400",
@@ -35,6 +37,8 @@ export function SolvePanel({ problem }) {
     const { selectedLanguage, code, setCode, theme, currentProblemId, submissionVersion } = useEditorStore();
     const { execute, isRunning, result, error, reset } = useCodeExecution();
     const { run, isRunning: isRunCodeRunning, result: runResult, error: runError, reset: runReset } = useRunExecution();
+    const { isLoggedIn } = useAuthStore();
+    const router = useRouter();
     const [consoleTab, setConsoleTab] = useState("testcase");
     const { data: sampleTestCases, isLoading: testCasesLoading } = useSampleTestCases(problem?.id);
 
@@ -151,6 +155,14 @@ export function SolvePanel({ problem }) {
     };
 
     const handleSubmit = async () => {
+        if (!isLoggedIn) {
+            toast.error("Login required", {
+                description: "You need to be logged in to submit. Your code is safe.",
+                action: { label: "Login", onClick: () => router.push(`/auth/login`) },
+                duration: 5000,
+            });
+            return;
+        }
         if (!problem?.id || !selectedLanguage?.id) return;
         if (!validateLanguageMatch()) return;
         setConsoleTab("result");
