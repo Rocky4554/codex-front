@@ -26,6 +26,11 @@ export function Navbar() {
                 {!hydrated ? null : isLoggedIn ? (
                     <>
                         <span className="text-zinc-400 text-sm">{user?.username}</span>
+                        {user?.role === "ADMIN" && (
+                            <Link href="/admin" className="text-sm text-amber-400 hover:text-amber-300 transition-colors font-medium">
+                                Admin
+                            </Link>
+                        )}
                         <button
                             onClick={handleLogout}
                             className="text-sm text-zinc-400 hover:text-white transition-colors"

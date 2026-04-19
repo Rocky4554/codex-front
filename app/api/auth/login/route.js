@@ -16,7 +16,7 @@ export async function POST(request) {
         return NextResponse.json(data, { status: backendRes.status });
     }
 
-    const user = data.user ?? { id: data.userId, username: data.username, email: data.email };
+    const user = data.user ?? { id: data.userId, username: data.username, email: data.email, role: data.role };
     const token = data.token;
 
     // Only return user info — token lives in httpOnly cookie only

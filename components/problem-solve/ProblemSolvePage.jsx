@@ -2,10 +2,22 @@
 import { ProblemPanel } from "./ProblemPanel";
 import { SolvePanel } from "./SolvePanel";
 import { useProblem } from "@/hooks/useProblem";
+import { useProblems } from "@/hooks/useProblems";
+import { useAuthStore } from "@/store/authStore";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export function ProblemSolvePage({ slug }) {
     const { data: problem, isLoading, error } = useProblem(slug);
+    const { data: allProblems } = useProblems();
+    const { user } = useAuthStore();
+    const router = useRouter();
+
+    // Build ordered list and find adjacent problems
+    const sorted = (allProblems || []).slice().sort((a, b) => (a.orderNum ?? 0) - (b.orderNum ?? 0));
+    const currentIdx = sorted.findIndex((p) => p.id === slug);
+    const prevProblem = currentIdx > 0 ? sorted[currentIdx - 1] : null;
+    const nextProblem = currentIdx >= 0 && currentIdx < sorted.length - 1 ? sorted[currentIdx + 1] : null;
 
     return (
         <div className="bg-[#f6f8f7] dark:bg-[#09090b] text-slate-900 dark:text-slate-100 font-sans overflow-hidden h-screen flex flex-col">
@@ -19,8 +31,36 @@ export function ProblemSolvePage({ slug }) {
                         <span className="font-bold text-lg tracking-tight text-white">Codex</span>
                     </Link>
                     <div className="w-px h-5 bg-zinc-700" />
-                    <Link href="/problems" className="text-zinc-400 hover:text-white transition-colors text-sm flex items-center gap-1">
-                        <span className="material-symbols-outlined text-[16px]">arrow_back</span>
+                    {/* Prev / Next navigation */}
+                    <div className="flex items-center gap-1">
+                        <button
+                            onClick={() => prevProblem && router.push(`/problems/${prevProblem.id}`)}
+                            disabled={!prevProblem}
+                            className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title={prevProblem ? `#${prevProblem.orderNum} ${prevProblem.title}` : "No previous problem"}
+                        >
+                            <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+                        </button>
+                        <Link href="/problems" className="text-zinc-300 hover:text-white transition-colors text-sm font-medium px-1">
+                            {problem?.orderNum != null ? `#${problem.orderNum}` : "Problems"}
+                        </Link>
+                        <button
+                            onClick={() => nextProblem && router.push(`/problems/${nextProblem.id}`)}
+                            disabled={!nextProblem}
+                            className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                            title={nextProblem ? `#${nextProblem.orderNum} ${nextProblem.title}` : "No next problem"}
+                        >
+                            <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+                        </button>
+                    </div>
+                </div>
+                <div className="flex items-center gap-3">
+                    {user?.role === "ADMIN" && (
+                        <Link href="/admin" className="text-xs text-amber-400 hover:text-amber-300 font-medium transition-colors">
+                            Admin
+                        </Link>
+                    )}
+                    <Link href="/problems" className="text-zinc-400 hover:text-white transition-colors text-sm">
                         Problems
                     </Link>
                 </div>

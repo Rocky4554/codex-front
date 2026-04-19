@@ -73,6 +73,9 @@ export default function ProblemsPage() {
                             <Link className="text-sm font-medium text-emerald-500 transition-colors" href="/problems">Problems</Link>
                             <span className="text-sm font-medium text-slate-400 cursor-not-allowed">Contests</span>
                             <span className="text-sm font-medium text-slate-400 cursor-not-allowed">Discuss</span>
+                            {user?.role === "ADMIN" && (
+                                <Link className="text-sm font-medium text-amber-400 hover:text-amber-300 transition-colors" href="/admin">Admin</Link>
+                            )}
                         </nav>
                         <div className="flex items-center gap-4">
                             <div className="relative">
