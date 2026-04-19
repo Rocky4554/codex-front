@@ -32,7 +32,7 @@ const STATUS_LABELS = {
 };
 
 export function SolvePanel({ problem }) {
-    const { selectedLanguage, code, setCode, theme, currentProblemId } = useEditorStore();
+    const { selectedLanguage, code, setCode, theme, currentProblemId, submissionVersion } = useEditorStore();
     const { execute, isRunning, result, error, reset } = useCodeExecution();
     const { run, isRunning: isRunCodeRunning, result: runResult, error: runError, reset: runReset } = useRunExecution();
     const [consoleTab, setConsoleTab] = useState("testcase");
@@ -187,6 +187,7 @@ export function SolvePanel({ problem }) {
             {/* Code Editor */}
             <div className="flex-1 relative overflow-hidden">
                 <Editor
+                    key={submissionVersion}
                     height="100%"
                     language={selectedLanguage?.name?.toLowerCase().includes("python") ? "python" :
                               selectedLanguage?.name?.toLowerCase().includes("java") && !selectedLanguage?.name?.toLowerCase().includes("script") ? "java" :

@@ -9,6 +9,7 @@ export const useEditorStore = create(
             code: {},
             currentProblemId: null,
             theme: "vs-dark",
+            submissionVersion: 0,
 
             setLanguage: (languageObj) => set({ selectedLanguage: languageObj }),
 
@@ -24,6 +25,24 @@ export const useEditorStore = create(
                             [pid]: {
                                 ...(state.code[pid] || {}),
                                 [langId]: value,
+                            },
+                        },
+                    };
+                }),
+
+            // Load a past submission into the editor — forces Monaco remount via submissionVersion
+            loadSubmission: (langObj, sourceCode) =>
+                set((state) => {
+                    const pid = state.currentProblemId;
+                    if (!pid || !langObj) return state;
+                    return {
+                        selectedLanguage: langObj,
+                        submissionVersion: state.submissionVersion + 1,
+                        code: {
+                            ...state.code,
+                            [pid]: {
+                                ...(state.code[pid] || {}),
+                                [langObj.id]: sourceCode,
                             },
                         },
                     };

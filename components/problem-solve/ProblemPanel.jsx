@@ -45,8 +45,8 @@ function SubmissionsList({ problemId }) {
     const handleSubmissionClick = (sub) => {
         if (!sub.sourceCode) return;
         const lang = (languages || []).find((l) => l.id === sub.languageId);
-        if (lang) useEditorStore.getState().setLanguage(lang);
-        useEditorStore.getState().setCode(sub.languageId, sub.sourceCode);
+        if (!lang) return;
+        useEditorStore.getState().loadSubmission(lang, sub.sourceCode);
     };
 
     if (isLoading) {
