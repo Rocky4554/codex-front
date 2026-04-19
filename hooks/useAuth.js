@@ -22,6 +22,7 @@ export const useLogin = () => {
         onSuccess: ({ user }) => {
             setAuth(user);
             router.push("/problems");
+            router.refresh();
         },
     });
 };
@@ -46,6 +47,7 @@ export const useRegister = () => {
         onSuccess: ({ user }) => {
             setAuth(user);
             router.push("/problems");
+            router.refresh();
         },
     });
 };
