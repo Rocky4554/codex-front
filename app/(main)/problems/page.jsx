@@ -4,7 +4,7 @@ import { useProblems } from "@/hooks/useProblems";
 import { useUserProblems } from "@/hooks/useUserProblems";
 import { useAuthStore } from "@/store/authStore";
 import { CheckCircle2, Circle } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { logoutAction } from "@/app/actions/auth";
 import { useRouter } from "next/navigation";
 
@@ -31,14 +31,144 @@ function UserAvatar({ username }) {
     );
 }
 
+const DIFFICULTY_META = [
+    { key: "EASY", label: "Easy", color: "#4ade80" },
+    { key: "MEDIUM", label: "Med", color: "#f59e0b" },
+    { key: "HARD", label: "Hard", color: "#fb7185" },
+];
+
+const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+
+function toDateKey(date) {
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, "0");
+    const day = `${date.getDate()}`.padStart(2, "0");
+    return `${year}-${month}-${day}`;
+}
+
+function parseSolvedDateKey(value) {
+    if (!value) {
+        return null;
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+        return null;
+    }
+
+    return toDateKey(date);
+}
+
+function getCurrentStreak(dateSet, today) {
+    let streak = 0;
+    const cursor = new Date(today);
+
+    while (dateSet.has(toDateKey(cursor))) {
+        streak += 1;
+        cursor.setDate(cursor.getDate() - 1);
+    }
+
+    return streak;
+}
+
+function getBestStreak(dateKeys) {
+    if (!dateKeys.length) {
+        return 0;
+    }
+
+    const sorted = [...dateKeys]
+        .map((key) => new Date(`${key}T00:00:00`))
+        .sort((a, b) => a - b);
+
+    let best = 1;
+    let current = 1;
+
+    for (let i = 1; i < sorted.length; i += 1) {
+        const previous = sorted[i - 1];
+        const dayDiff = Math.round((sorted[i] - previous) / (1000 * 60 * 60 * 24));
+
+        if (dayDiff === 1) {
+            current += 1;
+            best = Math.max(best, current);
+        } else if (dayDiff > 1) {
+            current = 1;
+        }
+    }
+
+    return best;
+}
+
+function formatTimeLeft(now) {
+    const end = new Date(now);
+    end.setHours(23, 59, 59, 999);
+    const diff = Math.max(0, end.getTime() - now.getTime());
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    return [hours, minutes, seconds].map((part) => `${part}`.padStart(2, "0")).join(":");
+}
+
+function SolvedProgressRing({ segments, solvedCount, totalCount }) {
+    const radius = 58;
+    const circumference = 2 * Math.PI * radius;
+    const gap = 12;
+    const segmentTotal = segments.reduce((sum, segment) => sum + segment.total, 0) || 1;
+    let offset = 0;
+
+    return (
+        <div className="relative h-40 w-40 shrink-0">
+            <svg className="h-full w-full -rotate-90" viewBox="0 0 140 140" fill="none">
+                <circle cx="70" cy="70" r={radius} stroke="rgba(255,255,255,0.09)" strokeWidth="8" />
+                {segments.map((segment) => {
+                    const rawLength = (segment.total / segmentTotal) * circumference;
+                    const dashLength = Math.max(rawLength - gap, 0);
+                    const circle = (
+                        <circle
+                            key={segment.key}
+                            cx="70"
+                            cy="70"
+                            r={radius}
+                            stroke={segment.color}
+                            strokeWidth="8"
+                            strokeLinecap="round"
+                            strokeDasharray={`${dashLength} ${circumference}`}
+                            strokeDashoffset={-offset}
+                        />
+                    );
+
+                    offset += rawLength;
+                    return circle;
+                })}
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
+                <div className="flex items-end gap-1">
+                    <span className="text-4xl font-semibold leading-none">{solvedCount}</span>
+                    <span className="text-lg font-semibold leading-none text-white/70">/{totalCount}</span>
+                </div>
+                <p className="mt-2 text-xs text-white/60">Solved</p>
+            </div>
+        </div>
+    );
+}
+
 export default function ProblemsPage() {
     const { user, logout } = useAuthStore();
     const router = useRouter();
     const { data: problems, isLoading: problemsLoading } = useProblems();
     const { data: userProblems } = useUserProblems();
+    const [now, setNow] = useState(() => new Date());
     const [search, setSearch] = useState("");
     const [difficultyFilter, setDifficultyFilter] = useState("ALL");
     const [showUserMenu, setShowUserMenu] = useState(false);
+
+    useEffect(() => {
+        const intervalId = window.setInterval(() => {
+            setNow(new Date());
+        }, 1000);
+
+        return () => window.clearInterval(intervalId);
+    }, []);
 
     // Build a Set of solved problem IDs for O(1) lookup
     const solvedIds = new Set(
@@ -50,6 +180,57 @@ export default function ProblemsPage() {
     const solvedCount = solvedIds.size;
     const totalCount = problems?.length || 0;
     const solvedPercent = totalCount ? Math.round((solvedCount / totalCount) * 100) : 0;
+    const solvedDateKeys = [...new Set(
+        (userProblems || [])
+            .filter((up) => (up.status === "ACCEPTED" || up.status === "SOLVED") && up.solvedAt)
+            .map((up) => parseSolvedDateKey(up.solvedAt))
+            .filter(Boolean)
+    )];
+    const solvedDateSet = new Set(solvedDateKeys);
+    const todayKey = toDateKey(now);
+    const currentStreak = getCurrentStreak(solvedDateSet, now);
+    const bestStreak = getBestStreak(solvedDateKeys);
+    const todaySolved = solvedDateSet.has(todayKey);
+    const monthLabel = now.toLocaleString("en-US", { month: "long", year: "numeric" });
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const daysInMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).getDate();
+    const calendarDays = Array.from({ length: firstDayOfMonth.getDay() + daysInMonth }, (_, index) => {
+        if (index < firstDayOfMonth.getDay()) {
+            return null;
+        }
+
+        const dayNumber = index - firstDayOfMonth.getDay() + 1;
+        const date = new Date(now.getFullYear(), now.getMonth(), dayNumber);
+        return {
+            dayNumber,
+            key: toDateKey(date),
+            isToday: dayNumber === now.getDate(),
+            isFuture: date > now,
+        };
+    });
+    const difficultyCounts = (problems || []).reduce((acc, problem) => {
+        if (!acc[problem.difficulty]) {
+            return acc;
+        }
+
+        acc[problem.difficulty].total += 1;
+        if (solvedIds.has(problem.id)) {
+            acc[problem.difficulty].solved += 1;
+        }
+
+        return acc;
+    }, {
+        EASY: { solved: 0, total: 0 },
+        MEDIUM: { solved: 0, total: 0 },
+        HARD: { solved: 0, total: 0 },
+    });
+    const progressSegments = DIFFICULTY_META.map(({ key, label, color }) => ({
+        key,
+        label,
+        color,
+        solved: difficultyCounts[key].solved,
+        total: difficultyCounts[key].total,
+    }));
 
     const filtered = (problems || []).filter((p) => {
         const matchSearch = p.title?.toLowerCase().includes(search.toLowerCase());
@@ -74,6 +255,7 @@ export default function ProblemsPage() {
                         </div>
                         <nav className="hidden md:flex items-center gap-8">
                             <Link className="text-sm font-medium text-emerald-500 transition-colors" href="/problems">Problems</Link>
+                            <Link className="text-sm font-medium text-slate-500 hover:text-emerald-500 transition-colors" href="/leaderboard">Leaderboard</Link>
                             <span className="text-sm font-medium text-slate-400 cursor-not-allowed">Contests</span>
                             <span className="text-sm font-medium text-slate-400 cursor-not-allowed">Discuss</span>
                             {user?.role === "ADMIN" && (
@@ -92,7 +274,7 @@ export default function ProblemsPage() {
                                     <span className="text-sm font-medium text-slate-700 dark:text-slate-300 hidden sm:block">
                                         {user?.username || "User"}
                                     </span>
-                                    <span className="material-symbols-outlined text-slate-400 !text-[20px]">expand_more</span>
+                                    <span className="material-symbols-outlined text-[20px]! text-slate-400">expand_more</span>
                                 </button>
                                 {showUserMenu && (
                                     <div className="absolute right-0 mt-2 w-48 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#18181b] shadow-lg z-50">
@@ -104,7 +286,7 @@ export default function ProblemsPage() {
                                             onClick={async () => { await logoutAction(); logout(); router.push("/"); }}
                                             className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
                                         >
-                                            <span className="material-symbols-outlined !text-[18px]">logout</span>
+                                            <span className="material-symbols-outlined text-[18px]!">logout</span>
                                             Sign out
                                         </button>
                                     </div>
@@ -115,62 +297,169 @@ export default function ProblemsPage() {
                 </div>
             </header>
 
-            <main className="flex-grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 space-y-8">
-                {/* Welcome Section */}
-                <div>
-                    <h1 className="text-3xl font-bold tracking-tight mb-2">
-                        Welcome back, {user?.username || "Coder"}
-                    </h1>
-                    <p className="text-slate-500 dark:text-slate-400">Pick up where you left off and keep the streak alive.</p>
-                </div>
-
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Problems Solved */}
-                    <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-[#18181b] p-6 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/50 transition-all duration-300">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500">
-                                <span className="material-symbols-outlined">check_circle</span>
-                            </div>
-                        </div>
+            <main className="grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
+                <div className="grid gap-8 xl:grid-cols-[320px_minmax(0,1fr)]">
+                    <aside className="space-y-6 xl:sticky xl:top-24 self-start">
                         <div>
-                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Problems Solved</p>
-                            <div className="flex items-end gap-2">
-                                <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{solvedCount}</h3>
-                                <span className="text-sm text-slate-400 mb-1.5">/ {totalCount}</span>
-                            </div>
+                            <h1 className="text-3xl font-bold tracking-tight mb-2">
+                                Welcome back, {user?.username || "Coder"}
+                            </h1>
+                            <p className="text-slate-500 dark:text-slate-400">Pick up where you left off and keep the streak alive.</p>
                         </div>
-                        <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full mt-4 overflow-hidden">
-                            <div className="bg-emerald-500 h-1.5 rounded-full transition-all" style={{ width: `${solvedPercent}%` }} />
-                        </div>
-                    </div>
 
-                    {/* Submission Stats */}
-                    <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-[#18181b] p-6 border border-zinc-200 dark:border-zinc-800 hover:border-purple-500/50 transition-all duration-300">
-                        <div className="flex justify-between items-start mb-4">
-                            <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-500">
-                                <span className="material-symbols-outlined">code</span>
+                        <div className="rounded-[24px] border border-zinc-700/70 bg-[#2d2f36] p-4 text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
+                            <div className="flex items-center justify-between px-2">
+                                <button className="text-white/70" type="button" aria-label="Current month">
+                                    <span className="material-symbols-outlined text-[20px]!">chevron_left</span>
+                                </button>
+                                <h2 className="text-2xl font-semibold">{monthLabel}</h2>
+                                <button className="text-white/70" type="button" aria-label="Current month">
+                                    <span className="material-symbols-outlined text-[20px]!">chevron_right</span>
+                                </button>
                             </div>
-                        </div>
-                        <div>
-                            <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Completion Rate</p>
-                            <div className="flex items-end gap-2">
-                                <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{solvedPercent}%</h3>
-                            </div>
-                        </div>
-                        <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full mt-4 overflow-hidden">
-                            <div className="bg-gradient-to-r from-purple-500 to-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${solvedPercent}%` }} />
-                        </div>
-                    </div>
-                </div>
 
-                {/* Problems Table */}
-                <div className="space-y-4">
+                            <div className="mt-5 flex items-end justify-between px-2">
+                                <div>
+                                    <p className="text-3xl font-semibold">Day {now.getDate()}</p>
+                                </div>
+                                <p className="text-sm font-medium text-white/45">{formatTimeLeft(now)} left</p>
+                            </div>
+
+                            <div className="mt-5 grid grid-cols-7 gap-y-3 text-center text-sm text-white/75">
+                                {WEEKDAY_LABELS.map((label, index) => (
+                                    <div key={`${label}-${index}`} className="font-medium">
+                                        {label}
+                                    </div>
+                                ))}
+                            </div>
+
+                            <div className="mt-3 grid grid-cols-7 gap-y-3">
+                                {calendarDays.map((day, index) => {
+                                    if (!day) {
+                                        return <div key={`blank-${index}`} />;
+                                    }
+
+                                    const isSolved = solvedDateSet.has(day.key);
+                                    const baseClassName = "mx-auto flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-all";
+                                    let className = `${baseClassName} bg-white/10 text-white/50`;
+
+                                    if (day.isFuture) {
+                                        className = `${baseClassName} bg-white/10 text-white/35`;
+                                    } else if (day.isToday) {
+                                        className = `${baseClassName} bg-[#4f6ef7] text-white ring-2 ring-[#9eb0ff]/30`;
+                                    } else if (isSolved) {
+                                        className = `${baseClassName} border border-dashed border-rose-400/60 bg-transparent text-white/90`;
+                                    }
+
+                                    return (
+                                        <div key={day.key} className={className}>
+                                            {day.dayNumber}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            <div className="mt-5 grid grid-cols-2 gap-3">
+                                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                    <p className="text-xs uppercase tracking-wide text-white/45">Current Streak</p>
+                                    <div className="mt-3 flex items-center gap-3">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500/12 text-lg">🔥</div>
+                                        <div className="flex items-end gap-1">
+                                            <span className="text-2xl font-semibold">{currentStreak}</span>
+                                            <span className="pb-1 text-xs text-white/[0.55]">days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                    <p className="text-xs uppercase tracking-wide text-white/45">Best Streak</p>
+                                    <div className="mt-3 flex items-center gap-3">
+                                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/12 text-lg">🏆</div>
+                                        <div className="flex items-end gap-1">
+                                            <span className="text-2xl font-semibold">{bestStreak}</span>
+                                            <span className="pb-1 text-xs text-white/[0.55]">days</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="mt-4 rounded-xl bg-rose-400/10 px-3 py-3 text-sm text-white/80">
+                                <div className="flex items-center justify-between">
+                                    <span className="font-medium">{todaySolved ? "Solved today" : "No solve today yet"}</span>
+                                    <span className="text-white/50">{todaySolved ? "Streak safe" : "Keep it alive"}</span>
+                                </div>
+                            </div>
+
+                            <p className="mt-4 text-center text-xs text-white/50">
+                                Solve one problem a day to keep your streak.
+                            </p>
+                        </div>
+
+                        <div className="rounded-[28px] border border-zinc-700/70 bg-[#2d2f36] px-5 py-5 text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
+                            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
+                                <div className="space-y-3 text-sm">
+                                    {progressSegments.map((segment) => (
+                                        <div key={segment.key} className="flex items-center justify-between gap-5">
+                                            <span className="font-semibold" style={{ color: segment.color }}>
+                                                {segment.label}
+                                            </span>
+                                            <span className="font-medium text-white/90">
+                                                {segment.solved}/{segment.total}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                                <SolvedProgressRing
+                                    segments={progressSegments}
+                                    solvedCount={solvedCount}
+                                    totalCount={totalCount}
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
+                            <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-[#18181b] p-6 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/50 transition-all duration-300">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500">
+                                        <span className="material-symbols-outlined">check_circle</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Problems Solved</p>
+                                    <div className="flex items-end gap-2">
+                                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{solvedCount}</h3>
+                                        <span className="text-sm text-slate-400 mb-1.5">/ {totalCount}</span>
+                                    </div>
+                                </div>
+                                <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full mt-4 overflow-hidden">
+                                    <div className="bg-emerald-500 h-1.5 rounded-full transition-all" style={{ width: `${solvedPercent}%` }} />
+                                </div>
+                            </div>
+
+                            <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-[#18181b] p-6 border border-zinc-200 dark:border-zinc-800 hover:border-purple-500/50 transition-all duration-300">
+                                <div className="flex justify-between items-start mb-4">
+                                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-500">
+                                        <span className="material-symbols-outlined">code</span>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Completion Rate</p>
+                                    <div className="flex items-end gap-2">
+                                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{solvedPercent}%</h3>
+                                    </div>
+                                </div>
+                                <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full mt-4 overflow-hidden">
+                                    <div className="bg-linear-to-r from-purple-500 to-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${solvedPercent}%` }} />
+                                </div>
+                            </div>
+                        </div>
+                    </aside>
+
+                    <section className="space-y-4 min-w-0">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                         <h2 className="text-xl font-bold text-slate-900 dark:text-white">All Problems</h2>
                         <div className="flex items-center gap-2">
                             <div className="relative">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 !text-[20px]">search</span>
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px]! text-slate-400">search</span>
                                 <input
                                     className="pl-10 pr-4 py-2 bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 w-full sm:w-64"
                                     placeholder="Search problems..."
@@ -253,6 +542,7 @@ export default function ProblemsPage() {
                             </table>
                         </div>
                     </div>
+                    </section>
                 </div>
             </main>
         </div>
