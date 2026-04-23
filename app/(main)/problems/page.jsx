@@ -109,46 +109,49 @@ function formatTimeLeft(now) {
     return [hours, minutes, seconds].map((part) => `${part}`.padStart(2, "0")).join(":");
 }
 
-function SolvedProgressRing({ segments, solvedCount, totalCount }) {
-    const radius = 58;
-    const circumference = 2 * Math.PI * radius;
-    const gap = 12;
-    const segmentTotal = segments.reduce((sum, segment) => sum + segment.total, 0) || 1;
-    let offset = 0;
-
+function SummaryCard({ title, value, accentClass, valueSuffix, subtitle, children }) {
     return (
-        <div className="relative h-40 w-40 shrink-0">
-            <svg className="h-full w-full -rotate-90" viewBox="0 0 140 140" fill="none">
-                <circle cx="70" cy="70" r={radius} stroke="rgba(255,255,255,0.09)" strokeWidth="8" />
-                {segments.map((segment) => {
-                    const rawLength = (segment.total / segmentTotal) * circumference;
-                    const dashLength = Math.max(rawLength - gap, 0);
-                    const circle = (
-                        <circle
-                            key={segment.key}
-                            cx="70"
-                            cy="70"
-                            r={radius}
-                            stroke={segment.color}
-                            strokeWidth="8"
-                            strokeLinecap="round"
-                            strokeDasharray={`${dashLength} ${circumference}`}
-                            strokeDashoffset={-offset}
-                        />
-                    );
-
-                    offset += rawLength;
-                    return circle;
-                })}
-            </svg>
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-white">
-                <div className="flex items-end gap-1">
-                    <span className="text-4xl font-semibold leading-none">{solvedCount}</span>
-                    <span className="text-lg font-semibold leading-none text-white/70">/{totalCount}</span>
-                </div>
-                <p className="mt-2 text-xs text-white/60">Solved</p>
+        <div className="rounded-[28px] border border-zinc-700/70 bg-[#2d2f36] px-5 py-5 text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
+            <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${accentClass}`}>
+                {title}
             </div>
+            <div className="mt-5">
+                <div className="flex items-end gap-2">
+                    <span className="text-4xl font-semibold leading-none">{value}</span>
+                    {valueSuffix ? <span className="pb-1 text-sm text-white/55">{valueSuffix}</span> : null}
+                </div>
+                {subtitle ? <p className="mt-2 text-sm text-white/55">{subtitle}</p> : null}
+            </div>
+            {children ? <div className="mt-5">{children}</div> : null}
         </div>
+    );
+}
+
+function DifficultySummaryCard({ segments }) {
+    return (
+        <SummaryCard
+            title="Easy Medium Hard"
+            value={segments.reduce((sum, segment) => sum + segment.solved, 0)}
+            valueSuffix="solved"
+            subtitle="Difficulty split"
+            accentClass="border-sky-400/25 bg-sky-400/10 text-sky-300"
+        >
+            <div className="space-y-3">
+                {segments.map((segment) => (
+                    <div key={segment.key} className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/5 px-3 py-3">
+                        <div className="flex items-center gap-2">
+                            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: segment.color }} />
+                            <span className="text-sm font-semibold" style={{ color: segment.color }}>
+                                {segment.label}
+                            </span>
+                        </div>
+                        <span className="text-sm font-medium text-white/85">
+                            {segment.solved}/{segment.total}
+                        </span>
+                    </div>
+                ))}
+            </div>
+        </SummaryCard>
     );
 }
 
@@ -298,16 +301,145 @@ export default function ProblemsPage() {
             </header>
 
             <main className="grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-                <div className="grid gap-8 xl:grid-cols-[320px_minmax(0,1fr)]">
-                    <aside className="space-y-6 xl:sticky xl:top-24 self-start">
-                        <div>
-                            <h1 className="text-3xl font-bold tracking-tight mb-2">
-                                Welcome back, {user?.username || "Coder"}
-                            </h1>
-                            <p className="text-slate-500 dark:text-slate-400">Pick up where you left off and keep the streak alive.</p>
-                        </div>
+                <div className="space-y-6">
+                    <div>
+                        <h1 className="text-3xl font-bold tracking-tight">
+                            Welcome back, {user?.username || "Coder"}
+                        </h1>
+                        <p className="mt-2 text-slate-500 dark:text-slate-400">Track your progress and keep the streak alive.</p>
+                    </div>
 
-                        <div className="rounded-[24px] border border-zinc-700/70 bg-[#2d2f36] p-4 text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
+                    <div className="grid gap-4 lg:grid-cols-3">
+                        <SummaryCard
+                            title="Complete Rate"
+                            value={solvedPercent}
+                            valueSuffix="%"
+                            subtitle={`${solvedCount} of ${totalCount} problems solved`}
+                            accentClass="border-violet-400/25 bg-violet-400/10 text-violet-300"
+                        >
+                            <div className="h-2 overflow-hidden rounded-full bg-white/10">
+                                <div
+                                    className="h-full rounded-full bg-linear-to-r from-violet-400 to-indigo-400 transition-all"
+                                    style={{ width: `${solvedPercent}%` }}
+                                />
+                            </div>
+                        </SummaryCard>
+
+                        <SummaryCard
+                            title="Problem Solved"
+                            value={solvedCount}
+                            valueSuffix={`/${totalCount}`}
+                            subtitle="Total accepted problems"
+                            accentClass="border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+                        >
+                            <div className="grid grid-cols-2 gap-3">
+                                <div className="rounded-2xl border border-white/8 bg-white/5 px-3 py-3">
+                                    <p className="text-xs uppercase tracking-wide text-white/45">Today</p>
+                                    <p className="mt-2 text-xl font-semibold">{todaySolved ? 1 : 0}</p>
+                                </div>
+                                <div className="rounded-2xl border border-white/8 bg-white/5 px-3 py-3">
+                                    <p className="text-xs uppercase tracking-wide text-white/45">Best</p>
+                                    <p className="mt-2 text-xl font-semibold">{bestStreak}</p>
+                                </div>
+                            </div>
+                        </SummaryCard>
+
+                        <DifficultySummaryCard segments={progressSegments} />
+                    </div>
+
+                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
+                        <section className="space-y-4 min-w-0">
+                            <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
+                                <h2 className="text-xl font-bold text-slate-900 dark:text-white">All Problems</h2>
+                                <div className="flex items-center gap-2">
+                                    <div className="relative">
+                                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px]! text-slate-400">search</span>
+                                        <input
+                                            className="pl-10 pr-4 py-2 bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 w-full sm:w-64"
+                                            placeholder="Search problems..."
+                                            type="text"
+                                            value={search}
+                                            onChange={(e) => setSearch(e.target.value)}
+                                        />
+                                    </div>
+                                    <select
+                                        value={difficultyFilter}
+                                        onChange={(e) => setDifficultyFilter(e.target.value)}
+                                        className="p-2 bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                    >
+                                        <option value="ALL">All</option>
+                                        <option value="EASY">Easy</option>
+                                        <option value="MEDIUM">Medium</option>
+                                        <option value="HARD">Hard</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div className="overflow-hidden rounded-[28px] border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#18181b] shadow-sm">
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-left text-sm">
+                                        <thead className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
+                                            <tr>
+                                                <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-16">Status</th>
+                                                <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Title</th>
+                                                <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-40">Difficulty</th>
+                                                <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-40">Acceptance</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
+                                            {problemsLoading
+                                                ? Array.from({ length: 8 }).map((_, i) => (
+                                                    <tr key={i}>
+                                                        <td colSpan={4} className="px-6 py-4">
+                                                            <div className="h-5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
+                                                        </td>
+                                                    </tr>
+                                                ))
+                                                : filtered.map((problem, i) => {
+                                                    const isSolved = solvedIds.has(problem.id);
+                                                    const slug = problem.slug || problem.id;
+                                                    return (
+                                                        <tr
+                                                            key={problem.id}
+                                                            className="group hover:bg-zinc-50 dark:hover:bg-[#27272a] transition-colors cursor-pointer"
+                                                            onClick={() => window.location.href = `/problems/${slug}`}
+                                                        >
+                                                            <td className="px-6 py-4">
+                                                                {isSolved
+                                                                    ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+                                                                    : <Circle className="w-5 h-5 text-zinc-400 dark:text-zinc-600" />
+                                                                }
+                                                            </td>
+                                                            <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
+                                                                <Link href={`/problems/${slug}`} className="hover:text-emerald-500 transition-colors" onClick={(e) => e.stopPropagation()}>
+                                                                    {i + 1}. {problem.title}
+                                                                </Link>
+                                                            </td>
+                                                            <td className="px-6 py-4">
+                                                                <DifficultyBadge difficulty={problem.difficulty} />
+                                                            </td>
+                                                            <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
+                                                                {problem.acceptanceRate != null ? `${problem.acceptanceRate}%` : "—"}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })
+                                            }
+                                            {!problemsLoading && filtered.length === 0 && (
+                                                <tr>
+                                                    <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
+                                                        No problems found.
+                                                    </td>
+                                                </tr>
+                                            )}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </section>
+
+                        <aside className="self-start">
+                            <div className="rounded-[24px] border border-zinc-700/70 bg-[#2d2f36] p-4 text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
                             <div className="flex items-center justify-between px-2">
                                 <button className="text-white/70" type="button" aria-label="Current month">
                                     <span className="material-symbols-outlined text-[20px]!">chevron_left</span>
@@ -393,156 +525,8 @@ export default function ProblemsPage() {
                                 Solve one problem a day to keep your streak.
                             </p>
                         </div>
-
-                        <div className="rounded-[28px] border border-zinc-700/70 bg-[#2d2f36] px-5 py-5 text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
-                            <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-                                <div className="space-y-3 text-sm">
-                                    {progressSegments.map((segment) => (
-                                        <div key={segment.key} className="flex items-center justify-between gap-5">
-                                            <span className="font-semibold" style={{ color: segment.color }}>
-                                                {segment.label}
-                                            </span>
-                                            <span className="font-medium text-white/90">
-                                                {segment.solved}/{segment.total}
-                                            </span>
-                                        </div>
-                                    ))}
-                                </div>
-                                <SolvedProgressRing
-                                    segments={progressSegments}
-                                    solvedCount={solvedCount}
-                                    totalCount={totalCount}
-                                />
-                            </div>
-                        </div>
-
-                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-1">
-                            <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-[#18181b] p-6 border border-zinc-200 dark:border-zinc-800 hover:border-emerald-500/50 transition-all duration-300">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-2 rounded-lg bg-emerald-100 dark:bg-emerald-500/10 text-emerald-600 dark:text-emerald-500">
-                                        <span className="material-symbols-outlined">check_circle</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Problems Solved</p>
-                                    <div className="flex items-end gap-2">
-                                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{solvedCount}</h3>
-                                        <span className="text-sm text-slate-400 mb-1.5">/ {totalCount}</span>
-                                    </div>
-                                </div>
-                                <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full mt-4 overflow-hidden">
-                                    <div className="bg-emerald-500 h-1.5 rounded-full transition-all" style={{ width: `${solvedPercent}%` }} />
-                                </div>
-                            </div>
-
-                            <div className="group relative overflow-hidden rounded-xl bg-white dark:bg-[#18181b] p-6 border border-zinc-200 dark:border-zinc-800 hover:border-purple-500/50 transition-all duration-300">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div className="p-2 rounded-lg bg-purple-100 dark:bg-purple-500/10 text-purple-600 dark:text-purple-500">
-                                        <span className="material-symbols-outlined">code</span>
-                                    </div>
-                                </div>
-                                <div>
-                                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-1">Completion Rate</p>
-                                    <div className="flex items-end gap-2">
-                                        <h3 className="text-3xl font-bold text-slate-900 dark:text-white">{solvedPercent}%</h3>
-                                    </div>
-                                </div>
-                                <div className="w-full bg-zinc-100 dark:bg-zinc-800 h-1.5 rounded-full mt-4 overflow-hidden">
-                                    <div className="bg-linear-to-r from-purple-500 to-indigo-500 h-1.5 rounded-full transition-all" style={{ width: `${solvedPercent}%` }} />
-                                </div>
-                            </div>
-                        </div>
-                    </aside>
-
-                    <section className="space-y-4 min-w-0">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <h2 className="text-xl font-bold text-slate-900 dark:text-white">All Problems</h2>
-                        <div className="flex items-center gap-2">
-                            <div className="relative">
-                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px]! text-slate-400">search</span>
-                                <input
-                                    className="pl-10 pr-4 py-2 bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-slate-900 dark:text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 w-full sm:w-64"
-                                    placeholder="Search problems..."
-                                    type="text"
-                                    value={search}
-                                    onChange={(e) => setSearch(e.target.value)}
-                                />
-                            </div>
-                            <select
-                                value={difficultyFilter}
-                                onChange={(e) => setDifficultyFilter(e.target.value)}
-                                className="p-2 bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                            >
-                                <option value="ALL">All</option>
-                                <option value="EASY">Easy</option>
-                                <option value="MEDIUM">Medium</option>
-                                <option value="HARD">Hard</option>
-                            </select>
-                        </div>
+                        </aside>
                     </div>
-
-                    <div className="overflow-hidden rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#18181b] shadow-sm">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left text-sm">
-                                <thead className="bg-zinc-50 dark:bg-zinc-900/50 border-b border-zinc-200 dark:border-zinc-800">
-                                    <tr>
-                                        <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-16">Status</th>
-                                        <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Title</th>
-                                        <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-40">Difficulty</th>
-                                        <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-40">Acceptance</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                                    {problemsLoading
-                                        ? Array.from({ length: 8 }).map((_, i) => (
-                                            <tr key={i}>
-                                                <td colSpan={4} className="px-6 py-4">
-                                                    <div className="h-5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
-                                                </td>
-                                            </tr>
-                                        ))
-                                        : filtered.map((problem, i) => {
-                                            const isSolved = solvedIds.has(problem.id);
-                                            const slug = problem.slug || problem.id;
-                                            return (
-                                                <tr
-                                                    key={problem.id}
-                                                    className="group hover:bg-zinc-50 dark:hover:bg-[#27272a] transition-colors cursor-pointer"
-                                                    onClick={() => window.location.href = `/problems/${slug}`}
-                                                >
-                                                    <td className="px-6 py-4">
-                                                        {isSolved
-                                                            ? <CheckCircle2 className="w-5 h-5 text-emerald-500" />
-                                                            : <Circle className="w-5 h-5 text-zinc-400 dark:text-zinc-600" />
-                                                        }
-                                                    </td>
-                                                    <td className="px-6 py-4 font-medium text-slate-900 dark:text-white">
-                                                        <Link href={`/problems/${slug}`} className="hover:text-emerald-500 transition-colors" onClick={(e) => e.stopPropagation()}>
-                                                            {i + 1}. {problem.title}
-                                                        </Link>
-                                                    </td>
-                                                    <td className="px-6 py-4">
-                                                        <DifficultyBadge difficulty={problem.difficulty} />
-                                                    </td>
-                                                    <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
-                                                        {problem.acceptanceRate != null ? `${problem.acceptanceRate}%` : "—"}
-                                                    </td>
-                                                </tr>
-                                            );
-                                        })
-                                    }
-                                    {!problemsLoading && filtered.length === 0 && (
-                                        <tr>
-                                            <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
-                                                No problems found.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                    </section>
                 </div>
             </main>
         </div>

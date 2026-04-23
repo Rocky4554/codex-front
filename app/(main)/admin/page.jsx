@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
@@ -7,7 +7,7 @@ import { useProblems } from "@/hooks/useProblems";
 import {
     useAdminUsers, useAdminUserSubmissions, useAdminUserProblems,
     useUpdateUserRole, useCreateProblem, useUpdateProblem, useDeleteProblem,
-    useAddExample, useDeleteExample, useCreateTestCase, useDeleteTestCase,
+    useAdminProblemDetail,
 } from "@/hooks/useAdmin";
 
 // ─── Shared helpers ──────────────────────────────────────────────────────────
@@ -51,14 +51,148 @@ const EMPTY_PROBLEM = {
     title: "", description: "", difficulty: "EASY",
     timeLimitMs: 2000, memoryLimitMb: 256, orderNum: "",
     constraints: "", topics: "",
+    examples: [],
+    testCases: [{ input: "", expectedOutput: "", isSample: false }],
 };
 
+const createEmptyExample = () => ({
+    id: null,
+    input: "",
+    output: "",
+    explanation: "",
+    displayOrder: "",
+});
+
+const createEmptyTestCase = () => ({
+    id: null,
+    input: "",
+    expectedOutput: "",
+    isSample: false,
+});
+
+function normalizeProblemForm(initial) {
+    if (!initial) {
+        return {
+            ...EMPTY_PROBLEM,
+            examples: [],
+            testCases: [createEmptyTestCase()],
+        };
+    }
+
+    return {
+        title: initial.title || "",
+        description: initial.description || "",
+        difficulty: initial.difficulty || "EASY",
+        timeLimitMs: initial.timeLimitMs ?? 2000,
+        memoryLimitMb: initial.memoryLimitMb ?? 256,
+        orderNum: initial.orderNum ?? "",
+        constraints: Array.isArray(initial.constraints) ? initial.constraints.join("\n") : (initial.constraints || ""),
+        topics: Array.isArray(initial.topics) ? initial.topics.join(", ") : (initial.topics || ""),
+        examples: Array.isArray(initial.examples) && initial.examples.length > 0
+            ? initial.examples.map((example, index) => ({
+                id: example.id ?? null,
+                input: example.input || "",
+                output: example.output || "",
+                explanation: example.explanation || "",
+                displayOrder: example.displayOrder ?? index,
+            }))
+            : [],
+        testCases: Array.isArray(initial.testCases) && initial.testCases.length > 0
+            ? initial.testCases.map((testCase) => ({
+                id: testCase.id ?? null,
+                input: testCase.input || "",
+                expectedOutput: testCase.expectedOutput || "",
+                isSample: Boolean(testCase.isSample),
+            }))
+            : [createEmptyTestCase()],
+    };
+}
+
 function ProblemForm({ initial, onSave, onCancel, saving }) {
-    const [form, setForm] = useState(initial || EMPTY_PROBLEM);
+    const [form, setForm] = useState(() => normalizeProblemForm(initial));
     const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
+
+    useEffect(() => {
+        setForm(normalizeProblemForm(initial));
+    }, [initial]);
+
+    const updateExample = (index, key, value) => {
+        setForm((current) => ({
+            ...current,
+            examples: current.examples.map((example, i) => (
+                i === index ? { ...example, [key]: value } : example
+            )),
+        }));
+    };
+
+    const addExample = () => {
+        setForm((current) => ({ ...current, examples: [...current.examples, createEmptyExample()] }));
+    };
+
+    const removeExample = (index) => {
+        setForm((current) => ({
+            ...current,
+            examples: current.examples.filter((_, i) => i !== index),
+        }));
+    };
+
+    const updateTestCase = (index, key, value) => {
+        setForm((current) => ({
+            ...current,
+            testCases: current.testCases.map((testCase, i) => (
+                i === index ? { ...testCase, [key]: value } : testCase
+            )),
+        }));
+    };
+
+    const addTestCase = () => {
+        setForm((current) => ({ ...current, testCases: [...current.testCases, createEmptyTestCase()] }));
+    };
+
+    const removeTestCase = (index) => {
+        setForm((current) => ({
+            ...current,
+            testCases: current.testCases.filter((_, i) => i !== index),
+        }));
+    };
 
     const handleSubmit = (e) => {
         e.preventDefault();
+
+        const examples = form.examples
+            .map((example, index) => ({
+                id: example.id || undefined,
+                input: example.input.trim(),
+                output: example.output.trim(),
+                explanation: example.explanation.trim(),
+                displayOrder: example.displayOrder !== "" ? Number(example.displayOrder) : index,
+            }))
+            .filter((example) => example.input || example.output || example.explanation);
+
+        if (examples.some((example) => !example.input || !example.output)) {
+            window.alert("Each example needs both input and output.");
+            return;
+        }
+
+        const testCases = form.testCases
+            .map((testCase) => ({
+                id: testCase.id || undefined,
+                input: testCase.input.trim(),
+                expectedOutput: testCase.expectedOutput.trim(),
+                isSample: Boolean(testCase.isSample),
+            }))
+            .filter((testCase) => testCase.input || testCase.expectedOutput);
+
+        if (testCases.length === 0) {
+            window.alert("Add at least one test case before saving the problem.");
+            return;
+        }
+
+        if (testCases.some((testCase) => !testCase.input || !testCase.expectedOutput)) {
+            window.alert("Each test case needs both input and expected output.");
+            return;
+        }
+
         onSave({
             title: form.title.trim(),
             description: form.description.trim(),
@@ -68,11 +202,18 @@ function ProblemForm({ initial, onSave, onCancel, saving }) {
             orderNum: form.orderNum !== "" ? Number(form.orderNum) : null,
             constraints: form.constraints ? form.constraints.split("\n").map((s) => s.trim()).filter(Boolean) : [],
             topics: form.topics ? form.topics.split(",").map((s) => s.trim()).filter(Boolean) : [],
+            examples: examples.map((example) => ({
+                ...example,
+                explanation: example.explanation || null,
+            })),
+            testCases,
         });
     };
 
     const inputCls = "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500";
     const labelCls = "block text-xs font-medium text-zinc-400 mb-1";
+    const sectionTitleCls = "text-xs font-semibold text-zinc-400 uppercase tracking-wide";
+    const cardCls = "rounded-xl border border-zinc-800 bg-zinc-900/60 p-3 space-y-3";
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -114,91 +255,88 @@ function ProblemForm({ initial, onSave, onCancel, saving }) {
                     <input className={inputCls} value={form.topics} onChange={(e) => set("topics", e.target.value)} placeholder="Array, Hash Table, Two Pointers" />
                 </div>
             </div>
+
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <h4 className={sectionTitleCls}>Examples</h4>
+                    <button type="button" onClick={addExample} className="text-xs text-emerald-400 hover:text-emerald-300">
+                        + Add Example
+                    </button>
+                </div>
+                {form.examples.length === 0 ? (
+                    <p className="text-xs text-zinc-500">Examples are optional, but adding at least one helps users understand the problem quickly.</p>
+                ) : (
+                    <div className="space-y-3">
+                        {form.examples.map((example, index) => (
+                            <div key={example.id || index} className={cardCls}>
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs text-zinc-500">Example {index + 1}</span>
+                                    <button type="button" onClick={() => removeExample(index)} className="text-xs text-zinc-500 hover:text-rose-400">
+                                        Remove
+                                    </button>
+                                </div>
+                                <div>
+                                    <label className={labelCls}>Input</label>
+                                    <textarea className={`${inputCls} h-20 resize-y font-mono text-xs`} value={example.input} onChange={(e) => updateExample(index, "input", e.target.value)} placeholder="nums = [2,7,11,15], target = 9" />
+                                </div>
+                                <div>
+                                    <label className={labelCls}>Output</label>
+                                    <textarea className={`${inputCls} h-16 resize-y font-mono text-xs`} value={example.output} onChange={(e) => updateExample(index, "output", e.target.value)} placeholder="[0,1]" />
+                                </div>
+                                <div className="grid grid-cols-[minmax(0,1fr)_120px] gap-3">
+                                    <div>
+                                        <label className={labelCls}>Explanation (optional)</label>
+                                        <input className={inputCls} value={example.explanation} onChange={(e) => updateExample(index, "explanation", e.target.value)} placeholder="nums[0] + nums[1] == 9" />
+                                    </div>
+                                    <div>
+                                        <label className={labelCls}>Order</label>
+                                        <input className={inputCls} type="number" value={example.displayOrder} onChange={(e) => updateExample(index, "displayOrder", e.target.value)} placeholder={String(index)} />
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                )}
+            </div>
+
+            <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                    <h4 className={sectionTitleCls}>Test Cases</h4>
+                    <button type="button" onClick={addTestCase} className="text-xs text-emerald-400 hover:text-emerald-300">
+                        + Add Test Case
+                    </button>
+                </div>
+                <p className="text-xs text-zinc-500">At least one test case is required. Mark visible ones as sample cases.</p>
+                <div className="space-y-3">
+                    {form.testCases.map((testCase, index) => (
+                        <div key={testCase.id || index} className={cardCls}>
+                            <div className="flex items-center justify-between">
+                                <span className="text-xs text-zinc-500">Test Case {index + 1}</span>
+                                <button type="button" onClick={() => removeTestCase(index)} disabled={form.testCases.length === 1} className="text-xs text-zinc-500 hover:text-rose-400 disabled:opacity-40 disabled:cursor-not-allowed">
+                                    Remove
+                                </button>
+                            </div>
+                            <div>
+                                <label className={labelCls}>Input</label>
+                                <textarea className={`${inputCls} h-20 resize-y font-mono text-xs`} value={testCase.input} onChange={(e) => updateTestCase(index, "input", e.target.value)} placeholder="[2,7,11,15]&#10;9" />
+                            </div>
+                            <div>
+                                <label className={labelCls}>Expected Output</label>
+                                <textarea className={`${inputCls} h-16 resize-y font-mono text-xs`} value={testCase.expectedOutput} onChange={(e) => updateTestCase(index, "expectedOutput", e.target.value)} placeholder="[0,1]" />
+                            </div>
+                            <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
+                                <input type="checkbox" checked={testCase.isSample} onChange={(e) => updateTestCase(index, "isSample", e.target.checked)} className="accent-emerald-500" />
+                                Visible sample case
+                            </label>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
             <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={onCancel} className="px-4 py-2 text-sm text-zinc-400 hover:text-white transition-colors">Cancel</button>
                 <button type="submit" disabled={saving} className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-medium rounded-lg disabled:opacity-50 transition-colors">
                     {saving ? "Saving…" : "Save Problem"}
-                </button>
-            </div>
-        </form>
-    );
-}
-
-// ─── Test Case Form ───────────────────────────────────────────────────────────
-
-function TestCaseForm({ problemId, onClose }) {
-    const [input, setInput] = useState("");
-    const [output, setOutput] = useState("");
-    const [isSample, setIsSample] = useState(false);
-    const createTC = useCreateTestCase();
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        await createTC.mutateAsync({ problemId, input, expectedOutput: output, isSample });
-        setInput(""); setOutput(""); setIsSample(false);
-        onClose();
-    };
-
-    const inputCls = "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 font-mono";
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-3">
-            <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Input</label>
-                <textarea className={`${inputCls} h-20 resize-y`} value={input} onChange={(e) => setInput(e.target.value)} required placeholder="[2,7,11,15]&#10;9" />
-            </div>
-            <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Expected Output</label>
-                <textarea className={`${inputCls} h-16 resize-y`} value={output} onChange={(e) => setOutput(e.target.value)} required placeholder="[0,1]" />
-            </div>
-            <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
-                <input type="checkbox" checked={isSample} onChange={(e) => setIsSample(e.target.checked)} className="accent-emerald-500" />
-                Sample test case (shown to user)
-            </label>
-            <div className="flex justify-end gap-2">
-                <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white transition-colors">Cancel</button>
-                <button type="submit" disabled={createTC.isPending} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg disabled:opacity-50">
-                    {createTC.isPending ? "Adding…" : "Add Test Case"}
-                </button>
-            </div>
-        </form>
-    );
-}
-
-// ─── Example Form ─────────────────────────────────────────────────────────────
-
-function ExampleForm({ problemId, onClose }) {
-    const [input, setInput] = useState("");
-    const [output, setOutput] = useState("");
-    const [explanation, setExplanation] = useState("");
-    const addExample = useAddExample();
-
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        await addExample.mutateAsync({ problemId, input, output, explanation: explanation || null });
-        onClose();
-    };
-
-    const inputCls = "w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 font-mono";
-
-    return (
-        <form onSubmit={handleSubmit} className="space-y-3">
-            <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Input</label>
-                <input className={inputCls} value={input} onChange={(e) => setInput(e.target.value)} required placeholder="nums = [2,7,11,15], target = 9" />
-            </div>
-            <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Output</label>
-                <input className={inputCls} value={output} onChange={(e) => setOutput(e.target.value)} required placeholder="[0,1]" />
-            </div>
-            <div>
-                <label className="block text-xs font-medium text-zinc-400 mb-1">Explanation (optional)</label>
-                <input className={inputCls} value={explanation} onChange={(e) => setExplanation(e.target.value)} placeholder="nums[0] + nums[1] == 9" />
-            </div>
-            <div className="flex justify-end gap-2">
-                <button type="button" onClick={onClose} className="px-3 py-1.5 text-sm text-zinc-400 hover:text-white transition-colors">Cancel</button>
-                <button type="submit" disabled={addExample.isPending} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-sm rounded-lg disabled:opacity-50">
-                    {addExample.isPending ? "Adding…" : "Add Example"}
                 </button>
             </div>
         </form>
@@ -212,13 +350,10 @@ function ProblemsTab() {
     const createProblem = useCreateProblem();
     const updateProblem = useUpdateProblem();
     const deleteProblem = useDeleteProblem();
-    const deleteExample = useDeleteExample();
-
     const [showCreate, setShowCreate] = useState(false);
     const [editId, setEditId] = useState(null);
     const [expandedId, setExpandedId] = useState(null);
-    const [showExampleForm, setShowExampleForm] = useState(null);
-    const [showTCForm, setShowTCForm] = useState(null);
+    const { data: expandedProblemDetail, isLoading: detailLoading } = useAdminProblemDetail(expandedId);
 
     const sorted = (problems || []).slice().sort((a, b) => (a.orderNum ?? 9999) - (b.orderNum ?? 9999));
 
@@ -304,16 +439,15 @@ function ProblemsTab() {
                             {/* Expanded detail */}
                             {expandedId === problem.id && (
                                 <div className="border-t border-zinc-800 p-4 space-y-4">
+                                    {detailLoading && (
+                                        <div className="text-sm text-zinc-500">Loading full problem detail…</div>
+                                    )}
                                     {/* Edit form */}
                                     {editId === problem.id && (
                                         <div className="bg-zinc-800/50 rounded-lg p-4">
                                             <h4 className="text-sm font-semibold text-white mb-3">Edit Problem</h4>
                                             <ProblemForm
-                                                initial={{
-                                                    ...problem,
-                                                    constraints: Array.isArray(problem.constraints) ? problem.constraints.join("\n") : (problem.constraints || ""),
-                                                    topics: Array.isArray(problem.topics) ? problem.topics.join(", ") : (problem.topics || ""),
-                                                }}
+                                                initial={expandedProblemDetail || problem}
                                                 onSave={handleUpdate}
                                                 onCancel={() => setEditId(null)}
                                                 saving={updateProblem.isPending}
@@ -325,36 +459,19 @@ function ProblemsTab() {
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <h4 className="text-xs font-semibold text-zinc-400 uppercase">Examples</h4>
-                                            <button
-                                                onClick={() => setShowExampleForm(showExampleForm === problem.id ? null : problem.id)}
-                                                className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
-                                            >
-                                                <span className="material-symbols-outlined text-[14px]">add</span>
-                                                Add
-                                            </button>
+                                            <span className="text-xs text-zinc-500">{expandedProblemDetail?.examples?.length ?? 0} total</span>
                                         </div>
-                                        {showExampleForm === problem.id && (
-                                            <div className="mb-3 bg-zinc-800/50 rounded-lg p-3">
-                                                <ExampleForm problemId={problem.id} onClose={() => setShowExampleForm(null)} />
-                                            </div>
-                                        )}
-                                        {(problem.examples || []).length === 0 ? (
+                                        {(expandedProblemDetail?.examples || []).length === 0 ? (
                                             <p className="text-xs text-zinc-600">No examples yet.</p>
                                         ) : (
                                             <div className="space-y-2">
-                                                {(problem.examples || []).map((ex, i) => (
+                                                {(expandedProblemDetail?.examples || []).map((ex, i) => (
                                                     <div key={ex.id || i} className="flex items-start gap-2 bg-zinc-800/30 rounded-lg p-2 font-mono text-xs text-zinc-400">
                                                         <div className="flex-1 space-y-0.5">
                                                             <div><span className="text-zinc-600">in:</span> {ex.input}</div>
                                                             <div><span className="text-zinc-600">out:</span> {ex.output}</div>
                                                             {ex.explanation && <div><span className="text-zinc-600">exp:</span> {ex.explanation}</div>}
                                                         </div>
-                                                        <button
-                                                            onClick={() => deleteExample.mutate({ problemId: problem.id, exampleId: ex.id })}
-                                                            className="text-zinc-600 hover:text-rose-400 transition-colors"
-                                                        >
-                                                            <span className="material-symbols-outlined text-[14px]">close</span>
-                                                        </button>
                                                     </div>
                                                 ))}
                                             </div>
@@ -365,20 +482,26 @@ function ProblemsTab() {
                                     <div>
                                         <div className="flex items-center justify-between mb-2">
                                             <h4 className="text-xs font-semibold text-zinc-400 uppercase">Test Cases</h4>
-                                            <button
-                                                onClick={() => setShowTCForm(showTCForm === problem.id ? null : problem.id)}
-                                                className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1"
-                                            >
-                                                <span className="material-symbols-outlined text-[14px]">add</span>
-                                                Add
-                                            </button>
+                                            <span className="text-xs text-zinc-500">{expandedProblemDetail?.testCases?.length ?? 0} total</span>
                                         </div>
-                                        {showTCForm === problem.id && (
-                                            <div className="mb-3 bg-zinc-800/50 rounded-lg p-3">
-                                                <TestCaseForm problemId={problem.id} onClose={() => setShowTCForm(null)} />
+                                        {(expandedProblemDetail?.testCases || []).length === 0 ? (
+                                            <p className="text-xs text-zinc-600">No hidden test cases yet. Edit the problem to add evaluation cases.</p>
+                                        ) : (
+                                            <div className="space-y-2">
+                                                {(expandedProblemDetail?.testCases || []).map((testCase, index) => (
+                                                    <div key={testCase.id || index} className="rounded-lg bg-zinc-800/30 p-2 font-mono text-xs text-zinc-400">
+                                                        <div className="mb-1 flex items-center justify-between">
+                                                            <span className="text-zinc-500">Case {index + 1}</span>
+                                                            <span className={`rounded-full border px-2 py-0.5 text-[10px] ${testCase.isSample ? "border-emerald-500/20 bg-emerald-500/10 text-emerald-300" : "border-zinc-700 bg-zinc-800 text-zinc-400"}`}>
+                                                                {testCase.isSample ? "Sample" : "Hidden"}
+                                                            </span>
+                                                        </div>
+                                                        <div><span className="text-zinc-600">in:</span> {testCase.input}</div>
+                                                        <div><span className="text-zinc-600">out:</span> {testCase.expectedOutput}</div>
+                                                    </div>
+                                                ))}
                                             </div>
                                         )}
-                                        <p className="text-xs text-zinc-600">Expand test case list via the problem detail page.</p>
                                     </div>
                                 </div>
                             )}

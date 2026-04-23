@@ -38,11 +38,24 @@ export const useUpdateUserRole = () => {
     });
 };
 
+export const useAdminProblemDetail = (problemId) =>
+    useQuery({
+        queryKey: ["admin", "problem", problemId],
+        queryFn: async () => {
+            const { data } = await api.get(`/problems/${problemId}/admin`);
+            return data;
+        },
+        enabled: !!problemId,
+    });
+
 export const useCreateProblem = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (body) => api.post("/problems", body),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ["problems"] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["problems"] });
+            qc.invalidateQueries({ queryKey: ["admin", "problem"] });
+        },
     });
 };
 
@@ -50,7 +63,10 @@ export const useUpdateProblem = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: ({ id, ...body }) => api.put(`/problems/${id}`, body),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ["problems"] }),
+        onSuccess: (_, variables) => {
+            qc.invalidateQueries({ queryKey: ["problems"] });
+            qc.invalidateQueries({ queryKey: ["admin", "problem", variables.id] });
+        },
     });
 };
 
@@ -58,7 +74,10 @@ export const useDeleteProblem = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (id) => api.delete(`/problems/${id}`),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ["problems"] }),
+        onSuccess: () => {
+            qc.invalidateQueries({ queryKey: ["problems"] });
+            qc.invalidateQueries({ queryKey: ["admin", "problem"] });
+        },
     });
 };
 
