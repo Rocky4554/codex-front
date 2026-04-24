@@ -112,8 +112,10 @@ function formatTimeLeft(now) {
 function SolvedProgressRing({ segments, solvedCount, totalCount }) {
     const radius = 38;
     const circumference = 2 * Math.PI * radius;
-    const totalSolved = segments.reduce((sum, segment) => sum + segment.solved, 0);
-    let offset = 0;
+    const totalSegmentCount = segments.reduce((sum, segment) => sum + segment.total, 0);
+    const visibleCircumference = circumference * 0.78;
+    const gapLength = (circumference - visibleCircumference) / segments.length;
+    let offset = circumference * 0.2;
 
     return (
         <div className="relative h-24 w-24 shrink-0">
@@ -126,11 +128,11 @@ function SolvedProgressRing({ segments, solvedCount, totalCount }) {
                     stroke="rgba(255,255,255,0.08)"
                     strokeWidth="9"
                 />
-                {totalSolved > 0
+                {totalSegmentCount > 0
                     ? segments.map((segment) => {
-                        const segmentLength = (segment.solved / totalSolved) * circumference;
+                        const segmentLength = (segment.total / totalSegmentCount) * visibleCircumference;
                         const dashOffset = circumference - offset;
-                        offset += segmentLength;
+                        offset += segmentLength + gapLength;
 
                         if (!segmentLength) {
                             return null;
@@ -143,7 +145,7 @@ function SolvedProgressRing({ segments, solvedCount, totalCount }) {
                                 cy="50"
                                 r={radius}
                                 fill="none"
-                                stroke={segment.color}
+                                stroke={segment.solved > 0 ? segment.color : `${segment.color}80`}
                                 strokeWidth="9"
                                 strokeLinecap="round"
                                 strokeDasharray={`${segmentLength} ${circumference - segmentLength}`}
@@ -186,45 +188,26 @@ function DifficultySummaryCard({ segments }) {
     const totalCount = segments.reduce((sum, segment) => sum + segment.total, 0);
 
     return (
-        <SummaryCard
-            title="Easy Medium Hard"
-            value={solvedCount}
-            valueSuffix="solved"
-            subtitle="Difficulty split"
-            accentClass="border-sky-400/25 bg-sky-400/10 text-sky-300"
-            className="min-h-[220px]"
-        >
-            <div className="flex items-center gap-3">
-                <SolvedProgressRing segments={segments} solvedCount={solvedCount} totalCount={totalCount} />
-                <div className="min-w-0 flex-1 space-y-2">
-                    {segments.map((segment) => {
-                        const width = segment.total ? `${(segment.solved / segment.total) * 100}%` : "0%";
-
-                        return (
-                            <div key={segment.key} className="rounded-2xl border border-white/8 bg-white/5 px-3 py-2">
-                                <div className="flex items-center justify-between text-xs">
-                                    <div className="flex items-center gap-2">
-                                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: segment.color }} />
-                                        <span className="font-semibold" style={{ color: segment.color }}>
-                                            {segment.label}
-                                        </span>
-                                    </div>
-                                    <span className="font-medium text-white/85">
-                                        {segment.solved}/{segment.total}
-                                    </span>
-                                </div>
-                                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
-                                    <div
-                                        className="h-full rounded-full transition-all"
-                                        style={{ width, backgroundColor: segment.color }}
-                                    />
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
+        <div className="rounded-[22px] border border-zinc-700/70 bg-[#2d2f36] px-4 py-3 text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
+            <div className="inline-flex rounded-full border border-sky-400/25 bg-sky-400/10 px-2.5 py-1 text-[11px] font-semibold text-sky-300">
+                Easy Medium Hard
             </div>
-        </SummaryCard>
+            <div className="mt-4 flex items-center justify-between gap-4">
+                <div className="space-y-3">
+                    {segments.map((segment) => (
+                        <div key={segment.key} className="flex items-center gap-3 text-sm">
+                            <span className="w-9 font-semibold" style={{ color: segment.color }}>
+                                {segment.label}
+                            </span>
+                            <span className="font-medium text-white/85">
+                                {segment.solved}/{segment.total}
+                            </span>
+                        </div>
+                    ))}
+                </div>
+                <SolvedProgressRing segments={segments} solvedCount={solvedCount} totalCount={totalCount} />
+            </div>
+        </div>
     );
 }
 
