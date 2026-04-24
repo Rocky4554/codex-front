@@ -109,47 +109,120 @@ function formatTimeLeft(now) {
     return [hours, minutes, seconds].map((part) => `${part}`.padStart(2, "0")).join(":");
 }
 
-function SummaryCard({ title, value, accentClass, valueSuffix, subtitle, children }) {
+function SolvedProgressRing({ segments, solvedCount, totalCount }) {
+    const radius = 38;
+    const circumference = 2 * Math.PI * radius;
+    const totalSolved = segments.reduce((sum, segment) => sum + segment.solved, 0);
+    let offset = 0;
+
     return (
-        <div className="rounded-[28px] border border-zinc-700/70 bg-[#2d2f36] px-5 py-5 text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
-            <div className={`inline-flex rounded-full border px-3 py-1 text-xs font-semibold ${accentClass}`}>
+        <div className="relative h-24 w-24 shrink-0">
+            <svg className="-rotate-90" viewBox="0 0 100 100">
+                <circle
+                    cx="50"
+                    cy="50"
+                    r={radius}
+                    fill="none"
+                    stroke="rgba(255,255,255,0.08)"
+                    strokeWidth="9"
+                />
+                {totalSolved > 0
+                    ? segments.map((segment) => {
+                        const segmentLength = (segment.solved / totalSolved) * circumference;
+                        const dashOffset = circumference - offset;
+                        offset += segmentLength;
+
+                        if (!segmentLength) {
+                            return null;
+                        }
+
+                        return (
+                            <circle
+                                key={segment.key}
+                                cx="50"
+                                cy="50"
+                                r={radius}
+                                fill="none"
+                                stroke={segment.color}
+                                strokeWidth="9"
+                                strokeLinecap="round"
+                                strokeDasharray={`${segmentLength} ${circumference - segmentLength}`}
+                                strokeDashoffset={dashOffset}
+                            />
+                        );
+                    })
+                    : null}
+            </svg>
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+                <span className="text-xl font-semibold leading-none text-white">{solvedCount}</span>
+                <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-white/45">
+                    / {totalCount || 0}
+                </span>
+            </div>
+        </div>
+    );
+}
+
+function SummaryCard({ title, value, accentClass, valueSuffix, subtitle, children, className = "" }) {
+    return (
+        <div className={`rounded-[24px] border border-zinc-700/70 bg-[#2d2f36] px-4 py-3.5 text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)] ${className}`}>
+            <div className={`inline-flex rounded-full border px-2.5 py-1 text-[11px] font-semibold ${accentClass}`}>
                 {title}
             </div>
-            <div className="mt-5">
+            <div className="mt-3.5">
                 <div className="flex items-end gap-2">
-                    <span className="text-4xl font-semibold leading-none">{value}</span>
-                    {valueSuffix ? <span className="pb-1 text-sm text-white/55">{valueSuffix}</span> : null}
+                    <span className="text-[2rem] font-semibold leading-none">{value}</span>
+                    {valueSuffix ? <span className="pb-0.5 text-xs text-white/55">{valueSuffix}</span> : null}
                 </div>
-                {subtitle ? <p className="mt-2 text-sm text-white/55">{subtitle}</p> : null}
+                {subtitle ? <p className="mt-1.5 text-xs text-white/55">{subtitle}</p> : null}
             </div>
-            {children ? <div className="mt-5">{children}</div> : null}
+            {children ? <div className="mt-3.5">{children}</div> : null}
         </div>
     );
 }
 
 function DifficultySummaryCard({ segments }) {
+    const solvedCount = segments.reduce((sum, segment) => sum + segment.solved, 0);
+    const totalCount = segments.reduce((sum, segment) => sum + segment.total, 0);
+
     return (
         <SummaryCard
             title="Easy Medium Hard"
-            value={segments.reduce((sum, segment) => sum + segment.solved, 0)}
+            value={solvedCount}
             valueSuffix="solved"
             subtitle="Difficulty split"
             accentClass="border-sky-400/25 bg-sky-400/10 text-sky-300"
+            className="min-h-[220px]"
         >
-            <div className="space-y-3">
-                {segments.map((segment) => (
-                    <div key={segment.key} className="flex items-center justify-between rounded-2xl border border-white/8 bg-white/5 px-3 py-3">
-                        <div className="flex items-center gap-2">
-                            <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: segment.color }} />
-                            <span className="text-sm font-semibold" style={{ color: segment.color }}>
-                                {segment.label}
-                            </span>
-                        </div>
-                        <span className="text-sm font-medium text-white/85">
-                            {segment.solved}/{segment.total}
-                        </span>
-                    </div>
-                ))}
+            <div className="flex items-center gap-3">
+                <SolvedProgressRing segments={segments} solvedCount={solvedCount} totalCount={totalCount} />
+                <div className="min-w-0 flex-1 space-y-2">
+                    {segments.map((segment) => {
+                        const width = segment.total ? `${(segment.solved / segment.total) * 100}%` : "0%";
+
+                        return (
+                            <div key={segment.key} className="rounded-2xl border border-white/8 bg-white/5 px-3 py-2">
+                                <div className="flex items-center justify-between text-xs">
+                                    <div className="flex items-center gap-2">
+                                        <span className="h-2 w-2 rounded-full" style={{ backgroundColor: segment.color }} />
+                                        <span className="font-semibold" style={{ color: segment.color }}>
+                                            {segment.label}
+                                        </span>
+                                    </div>
+                                    <span className="font-medium text-white/85">
+                                        {segment.solved}/{segment.total}
+                                    </span>
+                                </div>
+                                <div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10">
+                                    <div
+                                        className="h-full rounded-full transition-all"
+                                        style={{ width, backgroundColor: segment.color }}
+                                    />
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
         </SummaryCard>
     );
@@ -301,7 +374,7 @@ export default function ProblemsPage() {
             </header>
 
             <main className="grow max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8">
-                <div className="space-y-6">
+                <div className="space-y-5">
                     <div>
                         <h1 className="text-3xl font-bold tracking-tight">
                             Welcome back, {user?.username || "Coder"}
@@ -309,13 +382,14 @@ export default function ProblemsPage() {
                         <p className="mt-2 text-slate-500 dark:text-slate-400">Track your progress and keep the streak alive.</p>
                     </div>
 
-                    <div className="grid gap-4 lg:grid-cols-3">
+                    <div className="grid gap-3.5 lg:grid-cols-3">
                         <SummaryCard
                             title="Complete Rate"
                             value={solvedPercent}
                             valueSuffix="%"
                             subtitle={`${solvedCount} of ${totalCount} problems solved`}
                             accentClass="border-violet-400/25 bg-violet-400/10 text-violet-300"
+                            className="min-h-[220px]"
                         >
                             <div className="h-2 overflow-hidden rounded-full bg-white/10">
                                 <div
@@ -331,15 +405,16 @@ export default function ProblemsPage() {
                             valueSuffix={`/${totalCount}`}
                             subtitle="Total accepted problems"
                             accentClass="border-emerald-400/25 bg-emerald-400/10 text-emerald-300"
+                            className="min-h-[220px]"
                         >
                             <div className="grid grid-cols-2 gap-3">
-                                <div className="rounded-2xl border border-white/8 bg-white/5 px-3 py-3">
+                                <div className="rounded-2xl border border-white/8 bg-white/5 px-3 py-2.5">
                                     <p className="text-xs uppercase tracking-wide text-white/45">Today</p>
-                                    <p className="mt-2 text-xl font-semibold">{todaySolved ? 1 : 0}</p>
+                                    <p className="mt-1.5 text-lg font-semibold">{todaySolved ? 1 : 0}</p>
                                 </div>
-                                <div className="rounded-2xl border border-white/8 bg-white/5 px-3 py-3">
+                                <div className="rounded-2xl border border-white/8 bg-white/5 px-3 py-2.5">
                                     <p className="text-xs uppercase tracking-wide text-white/45">Best</p>
-                                    <p className="mt-2 text-xl font-semibold">{bestStreak}</p>
+                                    <p className="mt-1.5 text-lg font-semibold">{bestStreak}</p>
                                 </div>
                             </div>
                         </SummaryCard>
@@ -347,7 +422,7 @@ export default function ProblemsPage() {
                         <DifficultySummaryCard segments={progressSegments} />
                     </div>
 
-                    <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_260px]">
+                    <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_312px]">
                         <section className="space-y-4 min-w-0">
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
                                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">All Problems</h2>
@@ -439,92 +514,90 @@ export default function ProblemsPage() {
                         </section>
 
                         <aside className="self-start">
-                            <div className="rounded-[24px] border border-zinc-700/70 bg-[#2d2f36] p-4 text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
-                            <div className="flex items-center justify-between px-2">
-                                <button className="text-white/70" type="button" aria-label="Current month">
-                                    <span className="material-symbols-outlined text-[20px]!">chevron_left</span>
-                                </button>
-                                <h2 className="text-2xl font-semibold">{monthLabel}</h2>
-                                <button className="text-white/70" type="button" aria-label="Current month">
-                                    <span className="material-symbols-outlined text-[20px]!">chevron_right</span>
-                                </button>
-                            </div>
-
-                            <div className="mt-5 flex items-end justify-between px-2">
-                                <div>
-                                    <p className="text-3xl font-semibold">Day {now.getDate()}</p>
+                            <div className="overflow-hidden rounded-[24px] border border-zinc-700/70 bg-[#2d2f36] p-4 text-white shadow-[0_18px_40px_rgba(0,0,0,0.2)]">
+                                <div className="flex items-center justify-between gap-2 px-1">
+                                    <button className="text-white/70" type="button" aria-label="Current month">
+                                        <span className="material-symbols-outlined text-[20px]!">chevron_left</span>
+                                    </button>
+                                    <h2 className="min-w-0 whitespace-nowrap text-xl font-semibold leading-none sm:text-2xl">{monthLabel}</h2>
+                                    <button className="text-white/70" type="button" aria-label="Current month">
+                                        <span className="material-symbols-outlined text-[20px]!">chevron_right</span>
+                                    </button>
                                 </div>
-                                <p className="text-sm font-medium text-white/45">{formatTimeLeft(now)} left</p>
-                            </div>
 
-                            <div className="mt-5 grid grid-cols-7 gap-y-3 text-center text-sm text-white/75">
-                                {WEEKDAY_LABELS.map((label, index) => (
-                                    <div key={`${label}-${index}`} className="font-medium">
-                                        {label}
-                                    </div>
-                                ))}
-                            </div>
-
-                            <div className="mt-3 grid grid-cols-7 gap-y-3">
-                                {calendarDays.map((day, index) => {
-                                    if (!day) {
-                                        return <div key={`blank-${index}`} />;
-                                    }
-
-                                    const isSolved = solvedDateSet.has(day.key);
-                                    const baseClassName = "mx-auto flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-all";
-                                    let className = `${baseClassName} bg-white/10 text-white/50`;
-
-                                    if (day.isFuture) {
-                                        className = `${baseClassName} bg-white/10 text-white/35`;
-                                    } else if (day.isToday) {
-                                        className = `${baseClassName} bg-[#4f6ef7] text-white ring-2 ring-[#9eb0ff]/30`;
-                                    } else if (isSolved) {
-                                        className = `${baseClassName} border border-dashed border-rose-400/60 bg-transparent text-white/90`;
-                                    }
-
-                                    return (
-                                        <div key={day.key} className={className}>
-                                            {day.dayNumber}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-
-                            <div className="mt-5 grid grid-cols-2 gap-3">
-                                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                                    <p className="text-xs uppercase tracking-wide text-white/45">Current Streak</p>
-                                    <div className="mt-3 flex items-center gap-3">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500/12 text-lg">🔥</div>
-                                        <div className="flex items-end gap-1">
-                                            <span className="text-2xl font-semibold">{currentStreak}</span>
-                                            <span className="pb-1 text-xs text-white/[0.55]">days</span>
-                                        </div>
-                                    </div>
+                                <div className="mt-5 flex items-end justify-between gap-3 px-1">
+                                    <p className="whitespace-nowrap text-[2rem] font-semibold leading-none">Day {now.getDate()}</p>
+                                    <p className="whitespace-nowrap text-xs font-medium text-white/45 sm:text-sm">{formatTimeLeft(now)} left</p>
                                 </div>
-                                <div className="rounded-xl border border-white/10 bg-white/5 p-3">
-                                    <p className="text-xs uppercase tracking-wide text-white/45">Best Streak</p>
-                                    <div className="mt-3 flex items-center gap-3">
-                                        <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/12 text-lg">🏆</div>
-                                        <div className="flex items-end gap-1">
-                                            <span className="text-2xl font-semibold">{bestStreak}</span>
-                                            <span className="pb-1 text-xs text-white/[0.55]">days</span>
+
+                                <div className="mt-5 grid grid-cols-7 gap-y-3 text-center text-sm text-white/75">
+                                    {WEEKDAY_LABELS.map((label, index) => (
+                                        <div key={`${label}-${index}`} className="font-medium">
+                                            {label}
+                                        </div>
+                                    ))}
+                                </div>
+
+                                <div className="mt-3 grid grid-cols-7 gap-y-3">
+                                    {calendarDays.map((day, index) => {
+                                        if (!day) {
+                                            return <div key={`blank-${index}`} />;
+                                        }
+
+                                        const isSolved = solvedDateSet.has(day.key);
+                                        const baseClassName = "mx-auto flex h-10 w-10 items-center justify-center rounded-full text-sm font-semibold transition-all";
+                                        let className = `${baseClassName} bg-white/10 text-white/50`;
+
+                                        if (day.isFuture) {
+                                            className = `${baseClassName} bg-white/10 text-white/35`;
+                                        } else if (day.isToday) {
+                                            className = `${baseClassName} bg-[#4f6ef7] text-white ring-2 ring-[#9eb0ff]/30`;
+                                        } else if (isSolved) {
+                                            className = `${baseClassName} border border-dashed border-rose-400/60 bg-transparent text-white/90`;
+                                        }
+
+                                        return (
+                                            <div key={day.key} className={className}>
+                                                {day.dayNumber}
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+
+                                <div className="mt-5 grid grid-cols-2 gap-3">
+                                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                        <p className="text-xs uppercase tracking-wide text-white/45">Current Streak</p>
+                                        <div className="mt-3 flex items-center gap-3">
+                                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-orange-500/12 text-lg">🔥</div>
+                                            <div className="flex items-end gap-1">
+                                                <span className="text-2xl font-semibold">{currentStreak}</span>
+                                                <span className="pb-1 text-xs text-white/55">days</span>
+                                            </div>
                                         </div>
                                     </div>
+                                    <div className="rounded-xl border border-white/10 bg-white/5 p-3">
+                                        <p className="text-xs uppercase tracking-wide text-white/45">Best Streak</p>
+                                        <div className="mt-3 flex items-center gap-3">
+                                            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/12 text-lg">🏆</div>
+                                            <div className="flex items-end gap-1">
+                                                <span className="text-2xl font-semibold">{bestStreak}</span>
+                                                <span className="pb-1 text-xs text-white/55">days</span>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div className="mt-4 rounded-xl bg-rose-400/10 px-3 py-3 text-sm text-white/80">
-                                <div className="flex items-center justify-between">
-                                    <span className="font-medium">{todaySolved ? "Solved today" : "No solve today yet"}</span>
-                                    <span className="text-white/50">{todaySolved ? "Streak safe" : "Keep it alive"}</span>
+                                <div className="mt-4 rounded-xl bg-rose-400/10 px-3 py-3 text-sm text-white/80">
+                                    <div className="flex items-center justify-between gap-3">
+                                        <span className="font-medium">{todaySolved ? "Solved today" : "No solve today yet"}</span>
+                                        <span className="whitespace-nowrap text-white/50">{todaySolved ? "Streak safe" : "Keep it alive"}</span>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <p className="mt-4 text-center text-xs text-white/50">
-                                Solve one problem a day to keep your streak.
-                            </p>
-                        </div>
+                                <p className="mt-4 text-center text-xs text-white/50">
+                                    Solve one problem a day to keep your streak.
+                                </p>
+                            </div>
                         </aside>
                     </div>
                 </div>
