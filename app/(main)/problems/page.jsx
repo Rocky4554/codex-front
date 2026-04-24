@@ -32,9 +32,9 @@ function UserAvatar({ username }) {
 }
 
 const DIFFICULTY_META = [
-    { key: "EASY", label: "Easy", color: "#4ade80" },
-    { key: "MEDIUM", label: "Med", color: "#f59e0b" },
-    { key: "HARD", label: "Hard", color: "#fb7185" },
+    { key: "EASY", label: "Easy", color: "#4ade80", ringColor: "#37c78a" },
+    { key: "MEDIUM", label: "Med", color: "#f59e0b", ringColor: "#8a6a2c" },
+    { key: "HARD", label: "Hard", color: "#fb7185", ringColor: "#a45f72" },
 ];
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
@@ -109,57 +109,66 @@ function formatTimeLeft(now) {
     return [hours, minutes, seconds].map((part) => `${part}`.padStart(2, "0")).join(":");
 }
 
+function polarToCartesian(centerX, centerY, radius, angleInDegrees) {
+    const angleInRadians = ((angleInDegrees - 90) * Math.PI) / 180.0;
+
+    return {
+        x: centerX + radius * Math.cos(angleInRadians),
+        y: centerY + radius * Math.sin(angleInRadians),
+    };
+}
+
+function describeArc(centerX, centerY, radius, startAngle, endAngle) {
+    const start = polarToCartesian(centerX, centerY, radius, endAngle);
+    const end = polarToCartesian(centerX, centerY, radius, startAngle);
+    const largeArcFlag = endAngle - startAngle <= 180 ? "0" : "1";
+
+    return [
+        "M", start.x, start.y,
+        "A", radius, radius, 0, largeArcFlag, 0, end.x, end.y,
+    ].join(" ");
+}
+
 function SolvedProgressRing({ segments, solvedCount, totalCount }) {
-    const radius = 38;
-    const circumference = 2 * Math.PI * radius;
+    const radius = 36;
+    const gapAngle = 18;
+    const startAngle = 190;
     const totalSegmentCount = segments.reduce((sum, segment) => sum + segment.total, 0);
-    const visibleCircumference = circumference * 0.78;
-    const gapLength = (circumference - visibleCircumference) / segments.length;
-    let offset = circumference * 0.2;
+    const availableAngle = 360 - gapAngle * segments.length;
+    let cursor = startAngle;
 
     return (
         <div className="relative h-24 w-24 shrink-0">
-            <svg className="-rotate-90" viewBox="0 0 100 100">
-                <circle
-                    cx="50"
-                    cy="50"
-                    r={radius}
-                    fill="none"
-                    stroke="rgba(255,255,255,0.08)"
-                    strokeWidth="9"
-                />
+            <svg viewBox="0 0 100 100">
                 {totalSegmentCount > 0
                     ? segments.map((segment) => {
-                        const segmentLength = (segment.total / totalSegmentCount) * visibleCircumference;
-                        const dashOffset = circumference - offset;
-                        offset += segmentLength + gapLength;
+                        const segmentAngle = (segment.total / totalSegmentCount) * availableAngle;
+                        const path = describeArc(50, 50, radius, cursor, cursor + segmentAngle);
+                        cursor += segmentAngle + gapAngle;
 
-                        if (!segmentLength) {
+                        if (!segmentAngle) {
                             return null;
                         }
 
                         return (
-                            <circle
+                            <path
                                 key={segment.key}
-                                cx="50"
-                                cy="50"
-                                r={radius}
+                                d={path}
                                 fill="none"
-                                stroke={segment.solved > 0 ? segment.color : `${segment.color}80`}
-                                strokeWidth="9"
+                                stroke={segment.ringColor || segment.color}
+                                strokeWidth="6"
                                 strokeLinecap="round"
-                                strokeDasharray={`${segmentLength} ${circumference - segmentLength}`}
-                                strokeDashoffset={dashOffset}
                             />
                         );
                     })
                     : null}
             </svg>
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
-                <span className="text-xl font-semibold leading-none text-white">{solvedCount}</span>
-                <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.18em] text-white/45">
-                    / {totalCount || 0}
-                </span>
+                <div className="flex items-end gap-0.5 leading-none">
+                    <span className="text-[2.05rem] font-semibold text-white">{solvedCount}</span>
+                    <span className="pb-0.5 text-sm font-semibold text-white/70">/{totalCount || 0}</span>
+                </div>
+                <span className="mt-1 text-[11px] font-medium text-white/40">Solved</span>
             </div>
         </div>
     );
