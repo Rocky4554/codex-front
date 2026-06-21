@@ -3,10 +3,9 @@ import Link from "next/link";
 import { useProblems } from "@/hooks/useProblems";
 import { useUserProblems } from "@/hooks/useUserProblems";
 import { useAuthStore } from "@/store/authStore";
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, Circle, Loader2 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { logoutAction } from "@/app/actions/auth";
-import { useRouter } from "next/navigation";
+import { useLogout } from "@/hooks/useLogout";
 
 function DifficultyBadge({ difficulty }) {
     const styles = {
@@ -221,8 +220,8 @@ function DifficultySummaryCard({ segments }) {
 }
 
 export default function ProblemsPage() {
-    const { user, logout } = useAuthStore();
-    const router = useRouter();
+    const { user } = useAuthStore();
+    const { signOut, isLoggingOut } = useLogout();
     const { data: problems, isLoading: problemsLoading } = useProblems();
     const { data: userProblems } = useUserProblems();
     const [now, setNow] = useState(() => new Date());
@@ -351,11 +350,16 @@ export default function ProblemsPage() {
                                             <p className="text-xs text-slate-400 truncate">{user?.email}</p>
                                         </div>
                                         <button
-                                            onClick={async () => { await logoutAction(); logout(); router.push("/"); }}
-                                            className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+                                            onClick={() => signOut("/")}
+                                            disabled={isLoggingOut}
+                                            className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
-                                            <span className="material-symbols-outlined text-[18px]!">logout</span>
-                                            Sign out
+                                            {isLoggingOut ? (
+                                                <Loader2 className="w-4.5 h-4.5 animate-spin" />
+                                            ) : (
+                                                <span className="material-symbols-outlined text-[18px]!">logout</span>
+                                            )}
+                                            {isLoggingOut ? "Signing out..." : "Sign out"}
                                         </button>
                                     </div>
                                 )}

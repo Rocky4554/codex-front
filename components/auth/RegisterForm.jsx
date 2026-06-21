@@ -13,8 +13,11 @@ function SubmitButton() {
         <button
             type="submit"
             disabled={pending}
-            className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg disabled:opacity-50 transition-colors"
+            className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
         >
+            {pending && (
+                <span className="w-4 h-4 border-2 border-black/60 border-t-transparent rounded-full animate-spin" />
+            )}
             {pending ? "Creating account..." : "Create Account"}
         </button>
     );

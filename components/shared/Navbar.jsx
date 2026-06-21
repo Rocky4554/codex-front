@@ -1,23 +1,16 @@
 "use client";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
-import { logoutAction } from "@/app/actions/auth";
+import { useLogout } from "@/hooks/useLogout";
 import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
 
 export function Navbar() {
-    const { user, isLoggedIn, logout } = useAuthStore();
-    const router = useRouter();
+    const { user, isLoggedIn } = useAuthStore();
+    const { signOut, isLoggingOut } = useLogout();
 
     // Fix hydration mismatch with Zustand persist
     const [hydrated, setHydrated] = useState(false);
     useEffect(() => setHydrated(true), []);
-
-    const handleLogout = async () => {
-        await logoutAction(); // clear server-side cookie
-        logout(); // clear Zustand
-        router.push("/");
-    };
 
     return (
         <nav className="h-12 flex items-center justify-between px-6 border-b border-zinc-800 bg-zinc-900/50 backdrop-blur sticky top-0 z-50">
@@ -34,10 +27,14 @@ export function Navbar() {
                             </Link>
                         )}
                         <button
-                            onClick={handleLogout}
-                            className="text-sm text-zinc-400 hover:text-white transition-colors"
+                            onClick={() => signOut("/")}
+                            disabled={isLoggingOut}
+                            className="text-sm text-zinc-400 hover:text-white transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1.5"
                         >
-                            Logout
+                            {isLoggingOut && (
+                                <span className="w-3 h-3 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+                            )}
+                            {isLoggingOut ? "Logging out..." : "Logout"}
                         </button>
                     </>
                 ) : (

@@ -2,9 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { Trophy } from "lucide-react";
-import { logoutAction } from "@/app/actions/auth";
+import { Trophy, Loader2 } from "lucide-react";
+import { useLogout } from "@/hooks/useLogout";
 import { useLeaderboard } from "@/hooks/useLeaderboard";
 import { useAuthStore } from "@/store/authStore";
 
@@ -26,8 +25,8 @@ function ScoreCell({ value, className = "" }) {
 }
 
 export default function LeaderboardPage() {
-    const { user, logout } = useAuthStore();
-    const router = useRouter();
+    const { user } = useAuthStore();
+    const { signOut, isLoggingOut } = useLogout();
     const [showUserMenu, setShowUserMenu] = useState(false);
     const { data: leaderboard, isLoading } = useLeaderboard();
 
@@ -75,11 +74,16 @@ export default function LeaderboardPage() {
                                             <p className="text-xs text-slate-400 truncate">{user?.email}</p>
                                         </div>
                                         <button
-                                            onClick={async () => { await logoutAction(); logout(); router.push("/"); }}
-                                            className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2"
+                                            onClick={() => signOut("/")}
+                                            disabled={isLoggingOut}
+                                            className="w-full text-left px-4 py-3 text-sm text-red-500 hover:bg-zinc-50 dark:hover:bg-zinc-800 transition-colors flex items-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                                         >
-                                            <span className="material-symbols-outlined text-[18px]!">logout</span>
-                                            Sign out
+                                            {isLoggingOut ? (
+                                                <Loader2 className="w-4.5 h-4.5 animate-spin" />
+                                            ) : (
+                                                <span className="material-symbols-outlined text-[18px]!">logout</span>
+                                            )}
+                                            {isLoggingOut ? "Signing out..." : "Sign out"}
                                         </button>
                                     </div>
                                 )}
