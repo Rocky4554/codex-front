@@ -1,16 +1,19 @@
 "use client";
 import { ProblemPanel } from "./ProblemPanel";
 import { SolvePanel } from "./SolvePanel";
+import { CodeBotPanel } from "./CodeBotPanel";
 import { useProblem } from "@/hooks/useProblem";
 import { useProblems } from "@/hooks/useProblems";
 import { useAuthStore } from "@/store/authStore";
+import { useAssistantStore } from "@/store/assistantStore";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 
 export function ProblemSolvePage({ slug }) {
     const { data: problem, isLoading, error } = useProblem(slug);
     const { data: allProblems } = useProblems();
-    const { user } = useAuthStore();
+    const { user, isLoggedIn } = useAuthStore();
+    const toggleCodeBot = useAssistantStore((s) => s.toggle);
     const router = useRouter();
 
     // Build ordered list and find adjacent problems
@@ -55,6 +58,16 @@ export function ProblemSolvePage({ slug }) {
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
+                    {isLoggedIn && (
+                        <button
+                            onClick={toggleCodeBot}
+                            className="flex items-center gap-1.5 rounded-lg border border-indigo-500/40 bg-indigo-500/10 px-2.5 py-1.5 text-xs font-medium text-indigo-300 transition-colors hover:bg-indigo-500/20"
+                            title="Open CodeBot assistant"
+                        >
+                            <span className="material-symbols-outlined text-[16px]">smart_toy</span>
+                            CodeBot
+                        </button>
+                    )}
                     {user?.role === "ADMIN" && (
                         <Link href="/admin" className="text-xs text-amber-400 hover:text-amber-300 font-medium transition-colors">
                             Admin
@@ -97,6 +110,7 @@ export function ProblemSolvePage({ slug }) {
                     <div className="w-1/2 flex flex-col h-full bg-[#1e1e1e]">
                         <SolvePanel problem={problem} />
                     </div>
+                    <CodeBotPanel problem={problem} />
                 </main>
             )}
         </div>
