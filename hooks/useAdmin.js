@@ -48,6 +48,34 @@ export const useAdminProblemDetail = (problemId) =>
         enabled: !!problemId,
     });
 
+// AI authoring can take a while (web search + running the reference solution
+// against each test case), so these calls use a longer timeout than the default.
+const AI_TIMEOUT_MS = 120000;
+
+export const useGenerateProblemAI = () =>
+    useMutation({
+        mutationFn: async ({ name, notes }) => {
+            const { data } = await api.post(
+                "/problems/ai/generate",
+                { name, notes },
+                { timeout: AI_TIMEOUT_MS },
+            );
+            return data;
+        },
+    });
+
+export const useEditProblemAI = () =>
+    useMutation({
+        mutationFn: async ({ current, instruction }) => {
+            const { data } = await api.post(
+                "/problems/ai/edit",
+                { current, instruction },
+                { timeout: AI_TIMEOUT_MS },
+            );
+            return data;
+        },
+    });
+
 export const useCreateProblem = () => {
     const qc = useQueryClient();
     return useMutation({
