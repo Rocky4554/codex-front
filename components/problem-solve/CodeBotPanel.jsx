@@ -153,7 +153,14 @@ export function CodeBotPanel({ problem }) {
         const text = input.trim();
         if (!text || streaming) return;
         setInput("");
-        runAction("chat", { message: text }, text);
+        // Send the current editor code along so CodeBot can answer
+        // "fix/edit my code" without a separate Review step.
+        const code = useEditorStore.getState().getCode();
+        runAction(
+            "chat",
+            { message: text, language: selectedLanguage?.name, code: code || undefined },
+            text,
+        );
     };
 
     const openConversation = async (id) => {
