@@ -8,12 +8,12 @@ const fetchMyLeaderboardStats = async () => {
 };
 
 export const useMyLeaderboardStats = () => {
-    const { isLoggedIn } = useAuthStore();
+    const { isLoggedIn, authReady } = useAuthStore();
 
     return useQuery({
         queryKey: ["leaderboard", "me"],
         queryFn: fetchMyLeaderboardStats,
-        enabled: isLoggedIn,
+        enabled: authReady && isLoggedIn,
         staleTime: 1000 * 60,
     });
 };

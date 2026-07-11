@@ -8,11 +8,11 @@ const fetchUserProblems = async () => {
 };
 
 export const useUserProblems = () => {
-    const { isLoggedIn } = useAuthStore();
+    const { isLoggedIn, authReady } = useAuthStore();
     return useQuery({
         queryKey: ["user-problems"],
         queryFn: fetchUserProblems,
-        enabled: isLoggedIn,
+        enabled: authReady && isLoggedIn,
         staleTime: 1000 * 60 * 5, // 5 min
     });
 };

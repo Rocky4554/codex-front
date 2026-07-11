@@ -1,41 +1,12 @@
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
+import { AppHeader } from "@/components/shared/AppHeader";
 
 export default function Home() {
   return (
     <div className="relative flex min-h-screen w-full flex-col overflow-x-hidden font-sans antialiased selection:bg-emerald-500 selection:text-white">
 
-      {/* Navigation */}
-      <header className="sticky top-0 z-50 w-full border-b border-zinc-800 bg-zinc-950/80 backdrop-blur-md">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-500">
-              <span className="material-symbols-outlined text-[20px]">code</span>
-            </div>
-            <span className="font-display text-xl font-bold tracking-tight text-white">SprintCode</span>
-          </div>
-
-          <nav className="hidden md:flex items-center gap-6">
-            <Link className="text-sm font-medium text-zinc-400 hover:text-white transition-colors" href="/problems">Problems</Link>
-            <Link className="text-sm font-medium text-zinc-400 hover:text-white transition-colors" href="#">Contests</Link>
-            <Link className="text-sm font-medium text-zinc-400 hover:text-white transition-colors" href="#">Discuss</Link>
-            <Link className="text-sm font-medium text-zinc-400 hover:text-white transition-colors" href="#">Pricing</Link>
-          </nav>
-
-          <div className="flex items-center gap-3">
-            <Link href="/auth/login">
-              <Button variant="ghost" className="hidden sm:flex text-zinc-400 hover:text-white hover:bg-zinc-900 transition-all">
-                Log In
-              </Button>
-            </Link>
-            <Link href="/auth/register">
-              <Button className="bg-emerald-500 text-zinc-950 shadow-lg shadow-emerald-500/20 hover:bg-emerald-500/90 font-bold transition-all">
-                Sign Up
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </header>
+      <AppHeader active="home" />
 
       <main className="flex-grow">
         {/* Hero Section */}

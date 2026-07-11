@@ -4,32 +4,51 @@ import { SolvePanel } from "./SolvePanel";
 import { CodeBotPanel } from "./CodeBotPanel";
 import { useProblem } from "@/hooks/useProblem";
 import { useProblems } from "@/hooks/useProblems";
+import { usePlaylist } from "@/hooks/usePlaylists";
 import { useAuthStore } from "@/store/authStore";
 import { useAssistantStore } from "@/store/assistantStore";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { useMemo } from "react";
 
 export function ProblemSolvePage({ slug }) {
     const { data: problem, isLoading, error } = useProblem(slug);
     const { data: allProblems } = useProblems();
+    const searchParams = useSearchParams();
+    const playlistId = searchParams.get("playlist");
+    const { data: playlist } = usePlaylist(playlistId);
     const { user, isLoggedIn } = useAuthStore();
     const toggleCodeBot = useAssistantStore((s) => s.toggle);
     const router = useRouter();
 
-    // Build ordered list and find adjacent problems
-    const sorted = (allProblems || []).slice().sort((a, b) => (a.orderNum ?? 0) - (b.orderNum ?? 0));
+    const withPlaylist = (problemId) =>
+        playlistId ? `/problems/${problemId}?playlist=${playlistId}` : `/problems/${problemId}`;
+
+    // Prefer playlist order when opened from a playlist; otherwise catalog orderNum.
+    const sorted = useMemo(() => {
+        if (playlist?.problems?.length) {
+            return [...playlist.problems].sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+        }
+        return (allProblems || []).slice().sort((a, b) => (a.orderNum ?? 0) - (b.orderNum ?? 0));
+    }, [playlist, allProblems]);
+
     const currentIdx = sorted.findIndex((p) => p.id === slug);
     const prevProblem = currentIdx > 0 ? sorted[currentIdx - 1] : null;
     const nextProblem = currentIdx >= 0 && currentIdx < sorted.length - 1 ? sorted[currentIdx + 1] : null;
+
+    const backHref = playlistId ? `/playlists/${playlistId}` : "/problems";
+    const backLabel = playlistId
+        ? (playlist?.title ? `Playlist: ${playlist.title}` : "Playlist")
+        : (problem?.orderNum != null ? `#${problem.orderNum}` : "Problems");
 
     return (
         <div className="bg-[#f6f8f7] dark:bg-[#09090b] text-slate-900 dark:text-slate-100 font-sans overflow-hidden h-screen flex flex-col">
             {/* Top Navigation Bar */}
             <header className="h-14 flex items-center justify-between px-4 border-b border-zinc-800 bg-[#18181b] shrink-0 z-10">
                 <div className="flex items-center gap-4">
-                    <Link href="/problems" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                        <div className="size-6 bg-zinc-800 rounded flex items-center justify-center text-emerald-500">
-                            <span className="material-symbols-outlined text-[18px]">code</span>
+                    <Link href="/problems" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/20 text-emerald-500">
+                            <span className="material-symbols-outlined text-[20px]">code</span>
                         </div>
                         <span className="font-bold text-lg tracking-tight text-white">SprintCode</span>
                     </Link>
@@ -37,21 +56,21 @@ export function ProblemSolvePage({ slug }) {
                     {/* Prev / Next navigation */}
                     <div className="flex items-center gap-1">
                         <button
-                            onClick={() => prevProblem && router.push(`/problems/${prevProblem.id}`)}
+                            onClick={() => prevProblem && router.push(withPlaylist(prevProblem.id))}
                             disabled={!prevProblem}
                             className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                            title={prevProblem ? `#${prevProblem.orderNum} ${prevProblem.title}` : "No previous problem"}
+                            title={prevProblem ? prevProblem.title : "No previous problem"}
                         >
                             <span className="material-symbols-outlined text-[18px]">chevron_left</span>
                         </button>
-                        <Link href="/problems" className="text-zinc-300 hover:text-white transition-colors text-sm font-medium px-1">
-                            {problem?.orderNum != null ? `#${problem.orderNum}` : "Problems"}
+                        <Link href={backHref} className="text-zinc-300 hover:text-white transition-colors text-sm font-medium px-1 max-w-[180px] truncate">
+                            {backLabel}
                         </Link>
                         <button
-                            onClick={() => nextProblem && router.push(`/problems/${nextProblem.id}`)}
+                            onClick={() => nextProblem && router.push(withPlaylist(nextProblem.id))}
                             disabled={!nextProblem}
                             className="p-1.5 rounded text-zinc-400 hover:text-white hover:bg-zinc-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
-                            title={nextProblem ? `#${nextProblem.orderNum} ${nextProblem.title}` : "No next problem"}
+                            title={nextProblem ? nextProblem.title : "No next problem"}
                         >
                             <span className="material-symbols-outlined text-[18px]">chevron_right</span>
                         </button>
@@ -67,6 +86,11 @@ export function ProblemSolvePage({ slug }) {
                             <span className="material-symbols-outlined text-[16px]">smart_toy</span>
                             CodeBot
                         </button>
+                    )}
+                    {isLoggedIn && (
+                        <Link href="/playlists" className="text-xs text-zinc-400 hover:text-white font-medium transition-colors">
+                            Playlists
+                        </Link>
                     )}
                     {user?.role === "ADMIN" && (
                         <Link href="/admin" className="text-xs text-amber-400 hover:text-amber-300 font-medium transition-colors">
@@ -94,8 +118,8 @@ export function ProblemSolvePage({ slug }) {
                 <main className="flex-1 flex items-center justify-center">
                     <div className="text-center space-y-3">
                         <p className="text-zinc-400 text-lg">Problem not found</p>
-                        <Link href="/problems" className="text-emerald-500 hover:underline text-sm">
-                            ← Back to problems
+                        <Link href={backHref} className="text-emerald-500 hover:underline text-sm">
+                            ← Back
                         </Link>
                     </div>
                 </main>

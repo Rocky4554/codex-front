@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { loginAction } from "@/app/actions/auth";
 import Link from "next/link";
+import { queryClient } from "@/lib/queryClient";
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -31,15 +32,17 @@ export function LoginForm() {
     useEffect(() => {
         if (state?.user) {
             setAuth(state.user);
+            queryClient.clear();
             router.push("/problems");
         }
-    }, [state]);
+    }, [state, setAuth, router]);
 
     return (
-        <form action={action} className="space-y-4">
+        <form action={action} className="space-y-4" autoComplete="on">
             <input
                 name="username"
                 type="text"
+                autoComplete="username"
                 placeholder="Username"
                 className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
                 required
@@ -47,6 +50,7 @@ export function LoginForm() {
             <input
                 name="password"
                 type="password"
+                autoComplete="current-password"
                 placeholder="Password"
                 className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
                 required

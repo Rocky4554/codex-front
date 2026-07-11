@@ -8,12 +8,12 @@ const fetchLeaderboard = async () => {
 };
 
 export const useLeaderboard = () => {
-    const { isLoggedIn } = useAuthStore();
+    const { isLoggedIn, authReady } = useAuthStore();
 
     return useQuery({
         queryKey: ["leaderboard"],
         queryFn: fetchLeaderboard,
-        enabled: isLoggedIn,
+        enabled: authReady && isLoggedIn,
         staleTime: 1000 * 60,
     });
 };

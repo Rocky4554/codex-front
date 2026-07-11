@@ -8,11 +8,11 @@ const fetchProblemSubmissions = async (problemId) => {
 };
 
 export const useProblemSubmissions = (problemId) => {
-    const { isLoggedIn } = useAuthStore();
+    const { isLoggedIn, authReady } = useAuthStore();
     return useQuery({
         queryKey: ["problem-submissions", problemId],
         queryFn: () => fetchProblemSubmissions(problemId),
-        enabled: isLoggedIn && !!problemId,
+        enabled: authReady && isLoggedIn && !!problemId,
         staleTime: 1000 * 10, // 10s — submissions update frequently
     });
 };

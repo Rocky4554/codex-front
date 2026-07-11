@@ -2,11 +2,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { logoutAction } from "@/app/actions/auth";
+import { queryClient } from "@/lib/queryClient";
 
-// Centralised sign-out handler that exposes an `isLoggingOut` flag so the UI
-// can show a loading state while the cookie + client store are cleared.
 export function useLogout() {
-    const { logout } = useAuthStore();
+    const clearAuth = useAuthStore((s) => s.clearAuth);
     const router = useRouter();
     const [isLoggingOut, setIsLoggingOut] = useState(false);
 
@@ -14,12 +13,15 @@ export function useLogout() {
         if (isLoggingOut) return;
         setIsLoggingOut(true);
         try {
-            await logoutAction(); // clear server-side cookie
-            logout(); // clear Zustand store
+            await logoutAction();
+            clearAuth();
+            queryClient.clear();
             router.push(redirectTo);
         } catch {
-            // Re-enable the button so the user can retry on failure
+            clearAuth();
+            queryClient.clear();
             setIsLoggingOut(false);
+            router.push(redirectTo);
         }
     };
 

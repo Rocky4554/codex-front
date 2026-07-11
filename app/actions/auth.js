@@ -80,5 +80,11 @@ export async function registerAction(prevState, formData) {
 
 export async function logoutAction() {
     const cookieStore = await cookies();
-    cookieStore.delete("auth_token");
+    cookieStore.set("auth_token", "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 0,
+        path: "/",
+    });
 }

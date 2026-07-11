@@ -9,6 +9,7 @@ import {
     useUpdateUserRole, useCreateProblem, useUpdateProblem, useDeleteProblem,
     useAdminProblemDetail, useGenerateProblemAI, useEditProblemAI,
 } from "@/hooks/useAdmin";
+import { AppHeader } from "@/components/shared/AppHeader";
 
 // ─── Shared helpers ──────────────────────────────────────────────────────────
 
@@ -949,22 +950,7 @@ export default function AdminPage() {
 
     return (
         <div className="min-h-screen bg-[#09090b] text-white">
-            {/* Header */}
-            <header className="h-14 flex items-center justify-between px-6 border-b border-zinc-800 bg-[#18181b] sticky top-0 z-10">
-                <div className="flex items-center gap-4">
-                    <Link href="/problems" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-                        <span className="font-bold text-lg tracking-tight text-emerald-400">Codex</span>
-                    </Link>
-                    <div className="w-px h-5 bg-zinc-700" />
-                    <span className="text-sm font-semibold text-amber-400">Admin Panel</span>
-                </div>
-                <div className="flex items-center gap-3">
-                    <span className="text-xs text-zinc-500">{user?.username}</span>
-                    <Link href="/problems" className="text-sm text-zinc-400 hover:text-white transition-colors">
-                        ← Back to Problems
-                    </Link>
-                </div>
-            </header>
+            <AppHeader active="admin" badge="Admin Panel" />
 
             {/* Tabs */}
             <div className="border-b border-zinc-800 px-6 flex gap-0">
