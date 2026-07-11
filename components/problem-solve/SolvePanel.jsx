@@ -107,7 +107,11 @@ export function SolvePanel({ problem }) {
     // Validate language matches code
     const validateLanguageMatch = () => {
         if (!selectedLanguage || !currentCode) return true;
-        
+
+        // SQL isn't covered by the keyword heuristic below; skip the check so a
+        // query is never wrongly flagged as another language.
+        if (selectedLanguage.name?.toLowerCase().includes("sql")) return true;
+
         const detectedLang = detectLanguageFromCode(currentCode);
         if (!detectedLang) return true; // Can't detect, allow it
         
@@ -204,7 +208,8 @@ export function SolvePanel({ problem }) {
                     language={selectedLanguage?.name?.toLowerCase().includes("python") ? "python" :
                               selectedLanguage?.name?.toLowerCase().includes("java") && !selectedLanguage?.name?.toLowerCase().includes("script") ? "java" :
                               selectedLanguage?.name?.toLowerCase().includes("c++") || selectedLanguage?.name?.toLowerCase().includes("cpp") ? "cpp" :
-                              selectedLanguage?.name?.toLowerCase().includes("javascript") ? "javascript" : "plaintext"}
+                              selectedLanguage?.name?.toLowerCase().includes("javascript") ? "javascript" :
+                              selectedLanguage?.name?.toLowerCase().includes("sql") ? "sql" : "plaintext"}
                     theme={theme}
                     value={currentCode}
                     onChange={handleCodeChange}
