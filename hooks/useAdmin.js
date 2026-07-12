@@ -76,6 +76,21 @@ export const useEditProblemAI = () =>
         },
     });
 
+// Verifies a hand-authored reference solution (no AI call) — used by the "Add
+// manually" form to run a SQL reference query on real SQLite and fill in
+// expected output, auto-adding ORDER BY when the query is missing one.
+export const useVerifyProblemAI = () =>
+    useMutation({
+        mutationFn: async ({ referenceSolution, testCases, timeLimitMs, memoryLimitMb }) => {
+            const { data } = await api.post(
+                "/problems/ai/verify",
+                { referenceSolution, testCases, timeLimitMs, memoryLimitMb },
+                { timeout: AI_TIMEOUT_MS },
+            );
+            return data;
+        },
+    });
+
 export const useCreateProblem = () => {
     const qc = useQueryClient();
     return useMutation({

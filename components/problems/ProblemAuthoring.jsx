@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useGenerateProblemAI } from "@/hooks/useAdmin";
+import { useGenerateProblemAI, useVerifyProblemAI } from "@/hooks/useAdmin";
 
 const EMPTY_PROBLEM = {
     title: "", description: "", difficulty: "EASY",
@@ -79,8 +79,13 @@ export function ProblemForm({ initial, onSave, onCancel, saving, onAiEdit }) {
     const [aiEditing, setAiEditing] = useState(false);
     const [aiError, setAiError] = useState("");
 
+    const verifySqlAI = useVerifyProblemAI();
+    const [sqlQuery, setSqlQuery] = useState("");
+    const [verifySqlError, setVerifySqlError] = useState("");
+
     useEffect(() => {
         setForm(normalizeProblemForm(initial));
+        setSqlQuery(initial?.referenceSolution?.sourceCode || "");
     }, [initial]);
 
     // Snapshot the current form as a draft (matching the backend ProblemDraft
@@ -120,6 +125,33 @@ export function ProblemForm({ initial, onSave, onCancel, saving, onAiEdit }) {
             setAiError(err?.response?.data?.message || err?.message || "AI edit failed. Try again.");
         } finally {
             setAiEditing(false);
+        }
+    };
+
+    // Runs the reference SQL query against each test case's input on real SQLite
+    // and fills in Expected Output. Missing ORDER BY is appended automatically
+    // server-side so results are deterministic and stop flaking on grading.
+    const handleVerifySql = async () => {
+        if (!sqlQuery.trim()) return;
+        setVerifySqlError("");
+        try {
+            const result = await verifySqlAI.mutateAsync({
+                referenceSolution: { language: "SQL", sourceCode: sqlQuery.trim() },
+                testCases: form.testCases.map((tc) => ({
+                    input: tc.input,
+                    expectedOutput: tc.expectedOutput,
+                    isSample: Boolean(tc.isSample),
+                })),
+                timeLimitMs: Number(form.timeLimitMs),
+                memoryLimitMb: Number(form.memoryLimitMb),
+            });
+            const normalized = normalizeProblemForm({ ...form, ...result });
+            setForm((current) => ({ ...current, testCases: normalized.testCases, meta: normalized.meta }));
+            if (result.referenceSolution?.sourceCode) {
+                setSqlQuery(result.referenceSolution.sourceCode);
+            }
+        } catch (err) {
+            setVerifySqlError(err?.response?.data?.message || err?.message || "Verification failed. Try again.");
         }
     };
 
@@ -402,6 +434,34 @@ export function ProblemForm({ initial, onSave, onCancel, saving, onAiEdit }) {
                         </div>
                     ))}
                 </div>
+            </div>
+
+            {/* Optional: verify a SQL reference query against the test cases above using
+                real SQLite, instead of typing Expected Output by hand. A missing ORDER BY
+                is appended automatically so results are deterministic. */}
+            <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 space-y-2">
+                <label className={labelCls}>SQL reference query (optional — SQL problems only)</label>
+                <textarea
+                    className={`${inputCls} h-20 resize-y font-mono text-xs`}
+                    value={sqlQuery}
+                    onChange={(e) => setSqlQuery(e.target.value)}
+                    placeholder="SELECT name FROM employees WHERE department = 'Engineering';"
+                />
+                <div className="flex items-center justify-between gap-3">
+                    <p className="text-[11px] text-sky-300/70">
+                        Runs this query against each test case&apos;s Input on real SQLite and fills in Expected Output.
+                        If it has no ORDER BY, one is added automatically so test cases pass consistently.
+                    </p>
+                    <button
+                        type="button"
+                        onClick={handleVerifySql}
+                        disabled={verifySqlAI.isPending || !sqlQuery.trim()}
+                        className="shrink-0 px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors"
+                    >
+                        {verifySqlAI.isPending ? "Verifying…" : "Verify Test Cases"}
+                    </button>
+                </div>
+                {verifySqlError && <p className="text-[11px] text-rose-400">{verifySqlError}</p>}
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
