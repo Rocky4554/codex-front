@@ -1,4 +1,5 @@
 "use client";
+import { Group, Panel, Separator } from "react-resizable-panels";
 import { ProblemPanel } from "./ProblemPanel";
 import { SolvePanel } from "./SolvePanel";
 import { CodeBotPanel } from "./CodeBotPanel";
@@ -11,6 +12,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { useMemo } from "react";
 
+function ResizeHandle() {
+    return (
+        <Separator
+            className="relative w-1.5 shrink-0 cursor-col-resize bg-zinc-800 transition-colors hover:bg-emerald-500/60 focus-visible:bg-emerald-500 focus-visible:outline-none data-[resize-handle-state=drag]:bg-emerald-500"
+        />
+    );
+}
+
 export function ProblemSolvePage({ slug }) {
     const { data: problem, isLoading, error } = useProblem(slug);
     const { data: allProblems } = useProblems();
@@ -18,6 +27,7 @@ export function ProblemSolvePage({ slug }) {
     const playlistId = searchParams.get("playlist");
     const { data: playlist } = usePlaylist(playlistId);
     const { user, isLoggedIn } = useAuthStore();
+    const isCodeBotOpen = useAssistantStore((s) => s.isOpen);
     const toggleCodeBot = useAssistantStore((s) => s.toggle);
     const router = useRouter();
 
@@ -127,14 +137,24 @@ export function ProblemSolvePage({ slug }) {
 
             {/* Main Content */}
             {problem && !isLoading && (
-                <main className="flex-1 flex overflow-hidden">
-                    <div className="w-1/2 flex flex-col h-full border-r border-zinc-800">
-                        <ProblemPanel problem={problem} />
-                    </div>
-                    <div className="w-1/2 flex flex-col h-full bg-[#1e1e1e]">
-                        <SolvePanel problem={problem} />
-                    </div>
-                    <CodeBotPanel problem={problem} />
+                <main className="flex-1 overflow-hidden">
+                    <Group orientation="horizontal" className="h-full">
+                        <Panel id="problem" defaultSize="38%" minSize="20%" className="flex h-full flex-col">
+                            <ProblemPanel problem={problem} />
+                        </Panel>
+                        <ResizeHandle />
+                        <Panel id="editor" defaultSize={isCodeBotOpen ? "38%" : "62%"} minSize="25%" className="flex h-full flex-col bg-[#1e1e1e]">
+                            <SolvePanel problem={problem} />
+                        </Panel>
+                        {isCodeBotOpen && (
+                            <>
+                                <ResizeHandle />
+                                <Panel id="codebot" defaultSize="24%" minSize="18%" maxSize="45%" className="flex h-full flex-col border-l border-zinc-800 bg-[#101012]">
+                                    <CodeBotPanel problem={problem} />
+                                </Panel>
+                            </>
+                        )}
+                    </Group>
                 </main>
             )}
         </div>

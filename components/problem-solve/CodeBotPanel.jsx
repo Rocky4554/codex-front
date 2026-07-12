@@ -182,7 +182,7 @@ export function CodeBotPanel({ problem }) {
     const isEmpty = messages.length === 0;
 
     return (
-        <div className="fixed top-14 right-0 bottom-0 z-40 flex w-[400px] max-w-[92vw] flex-col border-l border-zinc-800 bg-[#101012] shadow-2xl">
+        <div className="flex h-full min-w-0 flex-1 flex-col">
             {/* Header */}
             <div className="flex h-12 items-center justify-between border-b border-zinc-800 px-3">
                 <div className="flex items-center gap-2">
