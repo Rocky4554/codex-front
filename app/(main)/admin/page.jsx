@@ -374,11 +374,17 @@ function ProblemForm({ initial, onSave, onCancel, saving, onAiEdit }) {
                     SQL problem
                 </button>
             </div>
+            {isSql && (
+                <p className="text-xs text-sky-300/80">
+                    Describe the query task below, then put each test case&apos;s <code className="mx-1 text-sky-200">CREATE TABLE</code> +
+                    <code className="mx-1 text-sky-200">INSERT</code> setup and pipe-delimited expected rows in the Test Cases section.
+                </p>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                     <label className={labelCls}>Title *</label>
-                    <input className={inputCls} value={form.title} onChange={(e) => set("title", e.target.value)} required placeholder="Two Sum" />
+                    <input className={inputCls} value={form.title} onChange={(e) => set("title", e.target.value)} required placeholder={isSql ? "SQL: American Cities" : "Two Sum"} />
                 </div>
                 <div>
                     <label className={labelCls}>Difficulty</label>
@@ -402,7 +408,13 @@ function ProblemForm({ initial, onSave, onCancel, saving, onAiEdit }) {
                 </div>
                 <div className="col-span-2">
                     <label className={labelCls}>Description *</label>
-                    <textarea className={`${inputCls} h-40 resize-y font-mono text-xs`} value={form.description} onChange={(e) => set("description", e.target.value)} required placeholder="Problem statement..." />
+                    <textarea
+                        className={`${inputCls} h-40 resize-y font-mono text-xs`}
+                        value={form.description}
+                        onChange={(e) => set("description", e.target.value)}
+                        required
+                        placeholder={isSql ? "Query all columns for all American cities in the CITY table with populations larger than 100000. The CountryCode for America is USA." : "Problem statement..."}
+                    />
                 </div>
                 <div className="col-span-2">
                     <label className={labelCls}>Constraints (one per line)</label>
