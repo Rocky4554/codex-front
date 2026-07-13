@@ -82,10 +82,12 @@ export function ProblemForm({ initial, onSave, onCancel, saving, onAiEdit }) {
     const verifySqlAI = useVerifyProblemAI();
     const [sqlQuery, setSqlQuery] = useState("");
     const [verifySqlError, setVerifySqlError] = useState("");
+    const [isSql, setIsSql] = useState(() => initial?.referenceSolution?.language === "SQL");
 
     useEffect(() => {
         setForm(normalizeProblemForm(initial));
         setSqlQuery(initial?.referenceSolution?.sourceCode || "");
+        setIsSql(initial?.referenceSolution?.language === "SQL");
     }, [initial]);
 
     // Snapshot the current form as a draft (matching the backend ProblemDraft
@@ -310,6 +312,23 @@ export function ProblemForm({ initial, onSave, onCancel, saving, onAiEdit }) {
                 </div>
             )}
 
+            <div className="flex items-center gap-1 rounded-lg border border-zinc-800 bg-zinc-900/60 p-1 w-fit">
+                <button
+                    type="button"
+                    onClick={() => setIsSql(false)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${!isSql ? "bg-emerald-600 text-white" : "text-zinc-400 hover:text-white"}`}
+                >
+                    Coding problem
+                </button>
+                <button
+                    type="button"
+                    onClick={() => setIsSql(true)}
+                    className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${isSql ? "bg-sky-600 text-white" : "text-zinc-400 hover:text-white"}`}
+                >
+                    SQL problem
+                </button>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
                     <label className={labelCls}>Title *</label>
@@ -392,6 +411,33 @@ export function ProblemForm({ initial, onSave, onCancel, saving, onAiEdit }) {
                 )}
             </div>
 
+            {isSql && (
+                <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 space-y-2">
+                    <label className={labelCls}>SQL reference query (optional)</label>
+                    <textarea
+                        className={`${inputCls} h-20 resize-y font-mono text-xs`}
+                        value={sqlQuery}
+                        onChange={(e) => setSqlQuery(e.target.value)}
+                        placeholder="SELECT name FROM employees WHERE department = 'Engineering';"
+                    />
+                    <div className="flex items-center justify-between gap-3">
+                        <p className="text-[11px] text-sky-300/70">
+                            Runs this query against each test case&apos;s Input on real SQLite and fills in Expected Output.
+                            If it has no ORDER BY, one is added automatically so test cases pass consistently.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={handleVerifySql}
+                            disabled={verifySqlAI.isPending || !sqlQuery.trim()}
+                            className="shrink-0 px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors"
+                        >
+                            {verifySqlAI.isPending ? "Verifying…" : "Verify Test Cases"}
+                        </button>
+                    </div>
+                    {verifySqlError && <p className="text-[11px] text-rose-400">{verifySqlError}</p>}
+                </div>
+            )}
+
             <div className="space-y-3">
                 <div className="flex items-center justify-between">
                     <h4 className={sectionTitleCls}>Test Cases</h4>
@@ -400,6 +446,15 @@ export function ProblemForm({ initial, onSave, onCancel, saving, onAiEdit }) {
                     </button>
                 </div>
                 <p className="text-xs text-zinc-500">At least one test case is required. Mark visible ones as sample cases.</p>
+                {isSql && (
+                    <p className="text-xs text-amber-300/90 rounded-lg border border-amber-500/20 bg-amber-500/5 px-3 py-2">
+                        The database resets before every test case runs, so each test case&apos;s Input must repeat the full
+                        <code className="mx-1 text-amber-200">CREATE TABLE</code> +
+                        <code className="mx-1 text-amber-200">INSERT</code> statements in full — nothing carries over between cases.
+                        Use single quotes for string literals (<code className="mx-1 text-amber-200">&apos;USA&apos;</code>), not double quotes —
+                        SQLite treats <code className="mx-1 text-amber-200">&quot;USA&quot;</code> as an identifier and the query will fail to run.
+                    </p>
+                )}
                 <div className="space-y-3">
                     {form.testCases.map((testCase, index) => (
                         <div key={testCase.id || index} className={cardCls}>
@@ -420,12 +475,22 @@ export function ProblemForm({ initial, onSave, onCancel, saving, onAiEdit }) {
                                 </button>
                             </div>
                             <div>
-                                <label className={labelCls}>Input</label>
-                                <textarea className={`${inputCls} h-20 resize-y font-mono text-xs`} value={testCase.input} onChange={(e) => updateTestCase(index, "input", e.target.value)} placeholder="[2,7,11,15]&#10;9" />
+                                <label className={labelCls}>{isSql ? "Input (schema + seed data)" : "Input"}</label>
+                                <textarea
+                                    className={`${inputCls} h-20 resize-y font-mono text-xs`}
+                                    value={testCase.input}
+                                    onChange={(e) => updateTestCase(index, "input", e.target.value)}
+                                    placeholder={isSql ? "CREATE TABLE employees (id INTEGER, name TEXT, department TEXT);\nINSERT INTO employees VALUES (1, 'Alice', 'Engineering');" : "[2,7,11,15]\n9"}
+                                />
                             </div>
                             <div>
-                                <label className={labelCls}>Expected Output</label>
-                                <textarea className={`${inputCls} h-16 resize-y font-mono text-xs`} value={testCase.expectedOutput} onChange={(e) => updateTestCase(index, "expectedOutput", e.target.value)} placeholder="[0,1]" />
+                                <label className={labelCls}>{isSql ? "Expected Output (pipe-delimited rows, no header)" : "Expected Output"}</label>
+                                <textarea
+                                    className={`${inputCls} h-16 resize-y font-mono text-xs`}
+                                    value={testCase.expectedOutput}
+                                    onChange={(e) => updateTestCase(index, "expectedOutput", e.target.value)}
+                                    placeholder={isSql ? "1|Alice|Engineering" : "[0,1]"}
+                                />
                             </div>
                             <label className="flex items-center gap-2 text-sm text-zinc-400 cursor-pointer">
                                 <input type="checkbox" checked={testCase.isSample} onChange={(e) => updateTestCase(index, "isSample", e.target.checked)} className="accent-emerald-500" />
@@ -434,34 +499,6 @@ export function ProblemForm({ initial, onSave, onCancel, saving, onAiEdit }) {
                         </div>
                     ))}
                 </div>
-            </div>
-
-            {/* Optional: verify a SQL reference query against the test cases above using
-                real SQLite, instead of typing Expected Output by hand. A missing ORDER BY
-                is appended automatically so results are deterministic. */}
-            <div className="rounded-xl border border-sky-500/30 bg-sky-500/5 p-3 space-y-2">
-                <label className={labelCls}>SQL reference query (optional — SQL problems only)</label>
-                <textarea
-                    className={`${inputCls} h-20 resize-y font-mono text-xs`}
-                    value={sqlQuery}
-                    onChange={(e) => setSqlQuery(e.target.value)}
-                    placeholder="SELECT name FROM employees WHERE department = 'Engineering';"
-                />
-                <div className="flex items-center justify-between gap-3">
-                    <p className="text-[11px] text-sky-300/70">
-                        Runs this query against each test case&apos;s Input on real SQLite and fills in Expected Output.
-                        If it has no ORDER BY, one is added automatically so test cases pass consistently.
-                    </p>
-                    <button
-                        type="button"
-                        onClick={handleVerifySql}
-                        disabled={verifySqlAI.isPending || !sqlQuery.trim()}
-                        className="shrink-0 px-3 py-2 bg-sky-600 hover:bg-sky-500 text-white text-xs font-medium rounded-lg disabled:opacity-50 transition-colors"
-                    >
-                        {verifySqlAI.isPending ? "Verifying…" : "Verify Test Cases"}
-                    </button>
-                </div>
-                {verifySqlError && <p className="text-[11px] text-rose-400">{verifySqlError}</p>}
             </div>
 
             <div className="flex justify-end gap-2 pt-2">
