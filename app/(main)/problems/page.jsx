@@ -4,7 +4,7 @@ import { useProblems } from "@/hooks/useProblems";
 import { useUserProblems } from "@/hooks/useUserProblems";
 import { useAuthStore } from "@/store/authStore";
 import { CheckCircle2, Circle } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/shared/AppHeader";
 
 function DifficultyBadge({ difficulty }) {
@@ -28,6 +28,18 @@ const DIFFICULTY_META = [
 ];
 
 const WEEKDAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+
+function getProblemTopics(problem) {
+    if (Array.isArray(problem?.topics)) {
+        return problem.topics;
+    }
+    try {
+        const parsed = JSON.parse(problem?.topicsJson || "[]");
+        return Array.isArray(parsed) ? parsed : [];
+    } catch {
+        return [];
+    }
+}
 
 function toDateKey(date) {
     const year = date.getFullYear();
@@ -217,6 +229,7 @@ export default function ProblemsPage() {
     const [now, setNow] = useState(() => new Date());
     const [search, setSearch] = useState("");
     const [difficultyFilter, setDifficultyFilter] = useState("ALL");
+    const [topicFilter, setTopicFilter] = useState("ALL");
 
     useEffect(() => {
         const intervalId = window.setInterval(() => {
@@ -288,10 +301,17 @@ export default function ProblemsPage() {
         total: difficultyCounts[key].total,
     }));
 
+    const allTopics = useMemo(() => {
+        const topicSet = new Set();
+        (problems || []).forEach((p) => getProblemTopics(p).forEach((topic) => topicSet.add(topic)));
+        return [...topicSet].sort((a, b) => a.localeCompare(b));
+    }, [problems]);
+
     const filtered = (problems || []).filter((p) => {
         const matchSearch = p.title?.toLowerCase().includes(search.toLowerCase());
         const matchDiff = difficultyFilter === "ALL" || p.difficulty === difficultyFilter;
-        return matchSearch && matchDiff;
+        const matchTopic = topicFilter === "ALL" || getProblemTopics(p).includes(topicFilter);
+        return matchSearch && matchDiff && matchTopic;
     });
 
     return (
@@ -371,6 +391,16 @@ export default function ProblemsPage() {
                                         <option value="EASY">Easy</option>
                                         <option value="MEDIUM">Medium</option>
                                         <option value="HARD">Hard</option>
+                                    </select>
+                                    <select
+                                        value={topicFilter}
+                                        onChange={(e) => setTopicFilter(e.target.value)}
+                                        className="p-2 bg-white dark:bg-[#18181b] border border-zinc-200 dark:border-zinc-800 rounded-lg text-sm text-slate-700 dark:text-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+                                    >
+                                        <option value="ALL">All Topics</option>
+                                        {allTopics.map((topic) => (
+                                            <option key={topic} value={topic}>{topic}</option>
+                                        ))}
                                     </select>
                                 </div>
                             </div>
