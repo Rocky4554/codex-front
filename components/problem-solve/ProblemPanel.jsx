@@ -1,8 +1,35 @@
 "use client";
 import { useState } from "react";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import remarkBreaks from "remark-breaks";
 import { useProblemSubmissions } from "@/hooks/useProblemSubmissions";
 import { useLanguages } from "@/hooks/useLanguages";
 import { useEditorStore } from "@/store/editorStore";
+
+const descriptionMdComponents = {
+    p: (props) => <p className="mb-4 last:mb-0 leading-relaxed" {...props} />,
+    ul: (props) => <ul className="mb-4 ml-4 list-disc space-y-1" {...props} />,
+    ol: (props) => <ol className="mb-4 ml-4 list-decimal space-y-1" {...props} />,
+    li: (props) => <li className="leading-relaxed" {...props} />,
+    strong: (props) => <strong className="font-semibold text-white" {...props} />,
+    a: (props) => <a className="text-emerald-400 underline" target="_blank" rel="noreferrer" {...props} />,
+    code: ({ className, ...props }) =>
+        className
+            ? <code className={`font-mono text-zinc-200 ${className}`} {...props} />
+            : <code className="rounded bg-zinc-800 px-1 py-0.5 text-[12px] text-emerald-300" {...props} />,
+    pre: (props) => (
+        <pre className="mb-4 overflow-auto rounded-lg border border-zinc-800 bg-[#09090b] p-3 text-xs" {...props} />
+    ),
+    table: (props) => (
+        <div className="mb-4 overflow-x-auto rounded-lg border border-zinc-800">
+            <table className="w-full border-collapse text-left text-xs" {...props} />
+        </div>
+    ),
+    thead: (props) => <thead className="bg-zinc-900" {...props} />,
+    th: (props) => <th className="border-b border-zinc-800 px-3 py-2 font-semibold text-white" {...props} />,
+    td: (props) => <td className="border-b border-zinc-800/60 px-3 py-2 text-zinc-300" {...props} />,
+};
 
 function StatusBadge({ status }) {
     const s = String(status || "").toUpperCase();
@@ -187,8 +214,10 @@ export function ProblemPanel({ problem }) {
                             </div>
                         </div>
 
-                        <div className="text-zinc-300 text-sm leading-relaxed space-y-4 whitespace-pre-wrap">
-                            <p>{problem.description}</p>
+                        <div className="text-zinc-300 text-sm leading-relaxed">
+                            <ReactMarkdown remarkPlugins={[remarkGfm, remarkBreaks]} components={descriptionMdComponents}>
+                                {problem.description || ""}
+                            </ReactMarkdown>
                         </div>
 
                         {/* Examples */}
