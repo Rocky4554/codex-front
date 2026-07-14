@@ -112,9 +112,6 @@ export function SortableProblemList({ problems, playlistId, onReorder, onRemove,
                     <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${DIFF_STYLES[p.difficulty] || DIFF_STYLES.MEDIUM}`}>
                         {p.difficulty}
                     </span>
-                    {p.userCreated && (
-                        <span className="shrink-0 text-[10px] text-indigo-400">yours</span>
-                    )}
                     <button
                         type="button"
                         onClick={() => onRemove(p.id, p.title)}
