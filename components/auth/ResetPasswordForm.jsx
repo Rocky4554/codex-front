@@ -7,13 +7,18 @@ import Link from "next/link";
 import { resetPasswordAction } from "@/app/actions/auth";
 import { useAuthStore } from "@/store/authStore";
 import { queryClient } from "@/lib/queryClient";
+import { PasswordInput } from "@/components/auth/PasswordInput";
+import {
+    PasswordRequirements,
+    isPasswordStrong,
+} from "@/components/auth/PasswordRequirements";
 
-function SubmitButton() {
+function SubmitButton({ disabled }) {
     const { pending } = useFormStatus();
     return (
         <button
             type="submit"
-            disabled={pending}
+            disabled={pending || disabled}
             className="w-full py-2.5 bg-green-500 hover:bg-green-400 text-black font-semibold rounded-lg disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
         >
             {pending && (
@@ -28,6 +33,8 @@ export function ResetPasswordForm() {
     const router = useRouter();
     const clearAuth = useAuthStore((s) => s.clearAuth);
     const [resetToken, setResetToken] = useState("");
+    const [password, setPassword] = useState("");
+    const [confirm, setConfirm] = useState("");
     const [state, action] = useActionState(resetPasswordAction, null);
 
     useEffect(() => {
@@ -52,32 +59,36 @@ export function ResetPasswordForm() {
         return <p className="text-zinc-500 text-sm">Redirecting...</p>;
     }
 
+    const strong = isPasswordStrong(password);
+    const matches = password.length > 0 && password === confirm;
+
     return (
         <form action={action} className="space-y-4" autoComplete="on">
             <input type="hidden" name="resetToken" value={resetToken} />
-            <input
-                name="password"
-                type="password"
-                autoComplete="new-password"
-                placeholder="New password"
-                minLength={8}
-                className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
-                required
-            />
-            <input
+            <div className="space-y-2">
+                <PasswordInput
+                    name="password"
+                    autoComplete="new-password"
+                    placeholder="New password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    minLength={8}
+                />
+                <PasswordRequirements password={password} />
+            </div>
+            <PasswordInput
                 name="confirmPassword"
-                type="password"
                 autoComplete="new-password"
                 placeholder="Confirm new password"
+                value={confirm}
+                onChange={(e) => setConfirm(e.target.value)}
                 minLength={8}
-                className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
-                required
             />
-            <p className="text-zinc-500 text-xs">
-                Use at least 8 characters with upper, lower, and a digit.
-            </p>
+            {confirm && !matches && (
+                <p className="text-red-400 text-sm">Passwords do not match</p>
+            )}
             {state?.error && <p className="text-red-400 text-sm">{state.error}</p>}
-            <SubmitButton />
+            <SubmitButton disabled={!strong || !matches} />
             <p className="text-zinc-500 text-sm text-center">
                 <Link href="/auth/login" className="text-green-400 hover:text-green-300">
                     Back to sign in

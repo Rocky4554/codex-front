@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/authStore";
 import { loginAction } from "@/app/actions/auth";
 import Link from "next/link";
 import { queryClient } from "@/lib/queryClient";
+import { PasswordInput } from "@/components/auth/PasswordInput";
 
 function SubmitButton() {
     const { pending } = useFormStatus();
@@ -47,13 +48,10 @@ export function LoginForm() {
                 className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
                 required
             />
-            <input
+            <PasswordInput
                 name="password"
-                type="password"
                 autoComplete="current-password"
                 placeholder="Password"
-                className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
-                required
             />
             <div className="flex justify-end">
                 <Link
@@ -63,9 +61,7 @@ export function LoginForm() {
                     Forgot password?
                 </Link>
             </div>
-            {state?.error && (
-                <p className="text-red-400 text-sm">{state.error}</p>
-            )}
+            {state?.error && <p className="text-red-400 text-sm">{state.error}</p>}
             <SubmitButton />
             <p className="text-zinc-500 text-sm text-center">
                 Don&apos;t have an account?{" "}
