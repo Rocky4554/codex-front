@@ -55,6 +55,14 @@ export function LoginForm() {
                 className="w-full px-4 py-2.5 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:border-green-500 transition-colors"
                 required
             />
+            <div className="flex justify-end">
+                <Link
+                    href="/auth/forgot-password"
+                    className="text-sm text-green-400 hover:text-green-300"
+                >
+                    Forgot password?
+                </Link>
+            </div>
             {state?.error && (
                 <p className="text-red-400 text-sm">{state.error}</p>
             )}

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 const PROTECTED_ROUTES = ["/problems", "/dashboard", "/leaderboard", "/playlists"];
+/** Redirect logged-in users away (login/register only — keep reset flow reachable). */
 const AUTH_ROUTES = ["/auth/login", "/auth/register"];
 
 export function middleware(request) {
@@ -32,5 +33,8 @@ export const config = {
         "/playlists/:path*",
         "/auth/login",
         "/auth/register",
+        "/auth/forgot-password",
+        "/auth/verify-otp",
+        "/auth/reset-password",
     ],
 };
