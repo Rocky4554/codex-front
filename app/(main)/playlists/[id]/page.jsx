@@ -148,6 +148,7 @@ export default function PlaylistDetailPage({ params }) {
     }
 
     const accent = playlist.accentColor || "#A8E6CF";
+    const readOnly = Boolean(playlist.featured);
 
     return (
         <div className="min-h-screen bg-[#f4f4f5] dark:bg-[#09090b] text-slate-900 dark:text-slate-100">
@@ -159,12 +160,14 @@ export default function PlaylistDetailPage({ params }) {
                         <span className="text-zinc-600">/</span>
                         <span className="font-medium text-zinc-200 truncate max-w-[40vw]">{playlist.title}</span>
                     </div>
-                    <button
-                        onClick={handleDeletePlaylist}
-                        className="text-xs font-medium text-rose-400 hover:text-rose-300"
-                    >
-                        Delete playlist
-                    </button>
+                    {!readOnly && (
+                        <button
+                            onClick={handleDeletePlaylist}
+                            className="text-xs font-medium text-rose-400 hover:text-rose-300"
+                        >
+                            Delete playlist
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -197,7 +200,9 @@ export default function PlaylistDetailPage({ params }) {
                         <>
                             <div className="flex items-start justify-between gap-4">
                                 <h1 className="text-3xl font-black uppercase tracking-tight text-black">{playlist.title}</h1>
-                                <button onClick={() => setEditingMeta(true)} className="text-xs font-bold uppercase text-black/70 hover:text-black">Edit</button>
+                                {readOnly
+                                    ? <span className="border-2 border-black bg-white px-2 py-0.5 text-[10px] font-black uppercase text-black">Featured</span>
+                                    : <button onClick={() => setEditingMeta(true)} className="text-xs font-bold uppercase text-black/70 hover:text-black">Edit</button>}
                             </div>
                             <p className="mt-3 max-w-2xl text-sm leading-relaxed text-black/80">
                                 {playlist.description || "No description yet — add problems below."}
@@ -213,7 +218,7 @@ export default function PlaylistDetailPage({ params }) {
                 <section>
                     <div className="mb-3 flex items-center justify-between gap-3">
                         <h2 className="text-sm font-bold uppercase tracking-wide text-zinc-500">Problems in this playlist</h2>
-                        {(playlist.problems || []).length > 1 && (
+                        {!readOnly && (playlist.problems || []).length > 1 && (
                             <p className="text-[11px] text-zinc-500">Drag the handle to reorder</p>
                         )}
                     </div>
@@ -223,11 +228,12 @@ export default function PlaylistDetailPage({ params }) {
                         onReorder={handleReorder}
                         onRemove={handleRemove}
                         saving={reorderProblems.isPending || removeProblem.isPending}
+                        readOnly={readOnly}
                     />
                 </section>
 
                 {/* Add problems */}
-                <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121214] p-5">
+                {!readOnly && <section className="rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-[#121214] p-5">
                     <h2 className="text-lg font-bold text-slate-900 dark:text-white">Add problems</h2>
                     <div className="mt-4 flex flex-wrap gap-2">
                         {[
@@ -328,7 +334,7 @@ export default function PlaylistDetailPage({ params }) {
                             />
                         </div>
                     )}
-                </section>
+                </section>}
             </main>
         </div>
     );

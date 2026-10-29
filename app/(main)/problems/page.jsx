@@ -41,6 +41,51 @@ function getProblemTopics(problem) {
     }
 }
 
+const SHOW_TAGS_KEY = "problems.showTags";
+
+// Small switch used for the "Tags" toggle next to the filters.
+function TagsToggle({ checked, onChange }) {
+    return (
+        <button
+            type="button"
+            role="switch"
+            aria-checked={checked}
+            onClick={() => onChange(!checked)}
+            title={checked ? "Hide topic tags" : "Show topic tags"}
+            className="flex items-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-sm text-slate-700 dark:border-zinc-800 dark:bg-[#18181b] dark:text-slate-300"
+        >
+            <span>Tags</span>
+            <span className={`relative h-5 w-9 rounded-full transition-colors ${checked ? "bg-emerald-500" : "bg-zinc-300 dark:bg-zinc-700"}`}>
+                <span className={`absolute top-0.5 h-4 w-4 rounded-full bg-white transition-all ${checked ? "left-[18px]" : "left-0.5"}`} />
+            </span>
+        </button>
+    );
+}
+
+// SQL problems always carry the fixed "SQL" chip; the toggle reveals every other topic
+// (Joins, Window Functions, ...) and the tags of coding problems.
+function TopicChips({ topics, showAll }) {
+    const isSql = topics.includes("SQL");
+    const visible = showAll ? topics : isSql ? ["SQL"] : [];
+    if (visible.length === 0) return null;
+    return (
+        <div className="mt-1.5 flex flex-wrap gap-1.5">
+            {visible.map((topic) => (
+                <span
+                    key={topic}
+                    className={`rounded-full border px-2 py-0.5 text-[11px] font-medium ${
+                        topic === "SQL"
+                            ? "border-sky-300 bg-sky-100 text-sky-700 dark:border-sky-500/30 dark:bg-sky-500/10 dark:text-sky-300"
+                            : "border-zinc-200 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-400"
+                    }`}
+                >
+                    {topic}
+                </span>
+            ))}
+        </div>
+    );
+}
+
 function toDateKey(date) {
     const year = date.getFullYear();
     const month = `${date.getMonth() + 1}`.padStart(2, "0");
@@ -230,6 +275,22 @@ export default function ProblemsPage() {
     const [search, setSearch] = useState("");
     const [difficultyFilter, setDifficultyFilter] = useState("ALL");
     const [topicFilter, setTopicFilter] = useState("ALL");
+    const [showTags, setShowTags] = useState(false);
+
+    // Read after mount so server and client render the same markup first.
+    useEffect(() => {
+        try {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setShowTags(localStorage.getItem(SHOW_TAGS_KEY) === "1");
+        } catch {}
+    }, []);
+
+    const handleShowTags = (value) => {
+        setShowTags(value);
+        try {
+            localStorage.setItem(SHOW_TAGS_KEY, value ? "1" : "0");
+        } catch {}
+    };
 
     useEffect(() => {
         const intervalId = window.setInterval(() => {
@@ -371,7 +432,7 @@ export default function ProblemsPage() {
                         <section className="space-y-4 min-w-0">
                             <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
                                 <h2 className="text-xl font-bold text-slate-900 dark:text-white">All Problems</h2>
-                                <div className="flex items-center gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
                                     <div className="relative">
                                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-[20px]! text-slate-400">search</span>
                                         <input
@@ -402,6 +463,7 @@ export default function ProblemsPage() {
                                             <option key={topic} value={topic}>{topic}</option>
                                         ))}
                                     </select>
+                                    <TagsToggle checked={showTags} onChange={handleShowTags} />
                                 </div>
                             </div>
 
@@ -444,6 +506,7 @@ export default function ProblemsPage() {
                                                                 <Link href={`/problems/${slug}`} className="hover:text-emerald-500 transition-colors" onClick={(e) => e.stopPropagation()}>
                                                                     {i + 1}. {problem.title}
                                                                 </Link>
+                                                                <TopicChips topics={getProblemTopics(problem)} showAll={showTags} />
                                                             </td>
                                                             <td className="px-6 py-4">
                                                                 <DifficultyBadge difficulty={problem.difficulty} />

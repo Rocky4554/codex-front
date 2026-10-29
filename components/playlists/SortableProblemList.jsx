@@ -13,7 +13,7 @@ const DIFF_STYLES = {
  * HTML5 drag-and-drop reorder list for playlist problems.
  * Calls onReorder(newOrderedProblems) after a successful drop.
  */
-export function SortableProblemList({ problems, playlistId, onReorder, onRemove, saving }) {
+export function SortableProblemList({ problems, playlistId, onReorder, onRemove, saving, readOnly = false }) {
     const [items, setItems] = useState(problems || []);
     const [dragIndex, setDragIndex] = useState(null);
     const [overIndex, setOverIndex] = useState(null);
@@ -80,7 +80,7 @@ export function SortableProblemList({ problems, playlistId, onReorder, onRemove,
             {items.map((p, i) => (
                 <li
                     key={p.id}
-                    draggable={!saving}
+                    draggable={!saving && !readOnly}
                     onDragStart={handleDragStart(i)}
                     onDragEnd={handleDragEnd}
                     onDragOver={handleDragOver(i)}
@@ -89,7 +89,7 @@ export function SortableProblemList({ problems, playlistId, onReorder, onRemove,
                         overIndex === i && dragIndex !== i ? "bg-emerald-500/10" : ""
                     } ${dragIndex === i ? "opacity-50" : ""} ${saving ? "pointer-events-none opacity-70" : ""}`}
                 >
-                    <button
+                    {readOnly ? null : <button
                         type="button"
                         className="cursor-grab active:cursor-grabbing touch-none rounded p-1 text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800"
                         title="Drag to reorder"
@@ -97,7 +97,7 @@ export function SortableProblemList({ problems, playlistId, onReorder, onRemove,
                         tabIndex={-1}
                     >
                         <span className="material-symbols-outlined text-[18px]">drag_indicator</span>
-                    </button>
+                    </button>}
                     <span className="w-6 shrink-0 text-xs text-zinc-400">{i + 1}</span>
                     <Link
                         href={`/problems/${p.id}?playlist=${playlistId}`}
@@ -112,13 +112,13 @@ export function SortableProblemList({ problems, playlistId, onReorder, onRemove,
                     <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${DIFF_STYLES[p.difficulty] || DIFF_STYLES.MEDIUM}`}>
                         {p.difficulty}
                     </span>
-                    <button
+                    {readOnly ? null : <button
                         type="button"
                         onClick={() => onRemove(p.id, p.title)}
                         className="shrink-0 text-xs text-zinc-400 hover:text-rose-400"
                     >
                         Remove
-                    </button>
+                    </button>}
                 </li>
             ))}
         </ul>

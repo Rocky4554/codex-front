@@ -10,6 +10,7 @@ import { ErrorDisplay } from "@/components/ErrorDisplay";
 import { useSampleTestCases } from "@/hooks/useSampleTestCases";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
+import { SqlResultTable } from "./SqlResultTable";
 
 const STATUS_STYLES = {
     ACCEPTED: "text-emerald-400",
@@ -48,6 +49,7 @@ export function SolvePanel({ problem }) {
         }
     }, [problem?.id]);
 
+    const isSql = selectedLanguage?.name?.toLowerCase().includes("sql");
     const currentCode = selectedLanguage && currentProblemId
         ? (code[currentProblemId]?.[selectedLanguage.id] || "")
         : "";
@@ -289,9 +291,10 @@ export function SolvePanel({ problem }) {
                                     </div>
                                     <div>
                                         <p className="text-zinc-500 text-xs mb-1">Expected Output</p>
+                                        {isSql ? <SqlResultTable text={tc.expectedOutput} /> : (
                                         <pre className="bg-[#09090b] border border-zinc-800 rounded p-2 text-zinc-300 whitespace-pre-wrap overflow-auto max-h-24">
                                             {tc.expectedOutput}
-                                        </pre>
+                                        </pre>)}
                                     </div>
                                 </div>
                             ))}
@@ -331,8 +334,16 @@ export function SolvePanel({ problem }) {
                                                         Case {i + 1}: {tr.passed ? "Passed" : "Failed"}
                                                     </p>
                                                     <p className="text-zinc-500 text-xs">Input: <span className="text-zinc-300 font-mono">{tr.input}</span></p>
+                                                    {isSql ? (
+                                                        <div className="mt-1 space-y-1">
+                                                            <p className="text-zinc-500 text-xs">Expected:</p>
+                                                            <SqlResultTable text={tr.expectedOutput} />
+                                                            {!tr.passed && (<><p className="text-zinc-500 text-xs">Got:</p><SqlResultTable text={tr.actualOutput} tone="text-red-300" /></>)}
+                                                        </div>
+                                                    ) : (<>
                                                     <p className="text-zinc-500 text-xs">Expected: <span className="text-zinc-300 font-mono">{tr.expectedOutput}</span></p>
                                                     {!tr.passed && <p className="text-zinc-500 text-xs">Got: <span className="text-red-300 font-mono">{tr.actualOutput}</span></p>}
+                                                    </>)}
                                                 </div>
                                             ))}
                                         </div>
@@ -354,18 +365,20 @@ export function SolvePanel({ problem }) {
                                     {result.output && (
                                         <div>
                                             <p className="text-zinc-500 mb-1">Output</p>
+                                            {isSql ? <SqlResultTable text={result.output} /> : (
                                             <pre className="bg-[#09090b] border border-zinc-800 p-2 rounded text-zinc-300 whitespace-pre-wrap overflow-auto max-h-24">
                                                 {result.output}
-                                            </pre>
+                                            </pre>)}
                                         </div>
                                     )}
 
                                     {result.expectedOutput && result.status === "WRONG_ANSWER" && (
                                         <div>
                                             <p className="text-zinc-500 mb-1">Expected</p>
+                                            {isSql ? <SqlResultTable text={result.expectedOutput} tone="text-emerald-300/80" /> : (
                                             <pre className="bg-[#09090b] border border-zinc-800 p-2 rounded text-emerald-300/70 whitespace-pre-wrap overflow-auto max-h-24">
                                                 {result.expectedOutput}
-                                            </pre>
+                                            </pre>)}
                                         </div>
                                     )}
 

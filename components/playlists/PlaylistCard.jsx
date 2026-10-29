@@ -74,7 +74,7 @@ export function PlaylistCard({ playlist, onClick }) {
 
                 <div className="mt-auto pt-4">
                     <span className="mb-3 block text-xs font-semibold uppercase tracking-wide text-black/60 transition-opacity duration-200 group-hover:opacity-0 group-hover:h-0 group-hover:mb-0 overflow-hidden">
-                        {playlist.problemCount ?? 0} problems
+                        {playlist.problemCount ?? 0} problems{playlist.featured ? " · Featured" : ""}
                     </span>
                     <span
                         className="flex w-full items-center justify-center border-2 border-black bg-white px-4 py-2.5 text-xs font-black uppercase tracking-wide text-black
