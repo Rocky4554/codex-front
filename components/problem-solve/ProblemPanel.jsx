@@ -6,6 +6,8 @@ import remarkBreaks from "remark-breaks";
 import { useProblemSubmissions } from "@/hooks/useProblemSubmissions";
 import { useLanguages } from "@/hooks/useLanguages";
 import { useEditorStore } from "@/store/editorStore";
+import { getVisualization } from "@/lib/visualizations";
+import { StepPlayer } from "@/components/visualizer/StepPlayer";
 
 const descriptionMdComponents = {
     p: (props) => <p className="mb-4 last:mb-0 leading-relaxed" {...props} />,
@@ -148,6 +150,7 @@ function SubmissionsList({ problemId }) {
 
 export function ProblemPanel({ problem }) {
     const [activeTab, setActiveTab] = useState("description");
+    const visualization = getVisualization(problem);
 
     // Normalize difficulty to title case for display
     const difficulty = problem.difficulty
@@ -195,6 +198,16 @@ export function ProblemPanel({ problem }) {
                     <span className={`material-symbols-outlined text-[16px] ${activeTab === "submissions" ? "text-emerald-500" : ""}`}>history</span>
                     Submissions
                 </button>
+                {visualization && (
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab("visualize")}
+                        className={tabButtonCls("visualize")}
+                    >
+                        <span className={`material-symbols-outlined text-[16px] ${activeTab === "visualize" ? "text-emerald-500" : ""}`}>animation</span>
+                        Visualize
+                    </button>
+                )}
             </div>
 
             {/* Content */}
@@ -252,6 +265,10 @@ export function ProblemPanel({ problem }) {
 
                 {activeTab === "submissions" && (
                     <SubmissionsList problemId={problem.id} />
+                )}
+
+                {activeTab === "visualize" && visualization && (
+                    <StepPlayer viz={visualization} />
                 )}
             </div>
 
