@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useProblems } from "@/hooks/useProblems";
 import { useUserProblems } from "@/hooks/useUserProblems";
 import { useAuthStore } from "@/store/authStore";
@@ -268,6 +269,7 @@ function DifficultySummaryCard({ segments }) {
 }
 
 export default function ProblemsPage() {
+    const router = useRouter();
     const { user } = useAuthStore();
     const { data: problems, isLoading: problemsLoading } = useProblems();
     const { data: userProblems } = useUserProblems();
@@ -494,7 +496,8 @@ export default function ProblemsPage() {
                                                         <tr
                                                             key={problem.id}
                                                             className="group hover:bg-zinc-50 dark:hover:bg-[#27272a] transition-colors cursor-pointer"
-                                                            onClick={() => window.location.href = `/problems/${slug}`}
+                                                            onClick={() => router.push(`/problems/${slug}`)}
+                                                            onMouseEnter={() => router.prefetch(`/problems/${slug}`)}
                                                         >
                                                             <td className="px-6 py-4">
                                                                 {isSolved
