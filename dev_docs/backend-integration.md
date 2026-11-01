@@ -47,9 +47,9 @@ Full integration of the Next.js frontend with the Spring Boot backend at `http:/
 NEXT_PUBLIC_API_URL=http://localhost:8080/api
 BACKEND_URL=http://localhost:8080/api
 ```
-For production deployment change to `http://3.109.238.141:8080/api`.
+For production, `BACKEND_URL` is set in Vercel to `https://codex-code-el37.onrender.com/api` (backend on Render).
 
-**Backend `.env.production`** on EC2: update `APP_CORS_ALLOWED_ORIGINS` to include `http://localhost:3000` for dev.
+**Backend env on Render**: `APP_CORS_ALLOWED_ORIGINS` must include the frontend origin (`https://sprintcode.vercel.app`, plus `http://localhost:3000` for dev).
 
 ---
 
@@ -231,4 +231,4 @@ Navbar and problems page show "AL" / "Alex" / "Welcome back, Alex" hardcoded. No
 | `components/problem-solve/SolvePanel.jsx` | Wire Run/Submit buttons + show SSE results |
 | `app/(main)/problems/page.jsx` | Replace mock data with API + real user data |
 | `app/dashboard/page.jsx` | **Create** — simple redirect page |
-| Backend `.env.production` (EC2) | Update CORS to allow frontend URL |
+| Backend env vars (Render) | Update CORS to allow frontend URL |
