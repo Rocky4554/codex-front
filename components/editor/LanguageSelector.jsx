@@ -1,21 +1,35 @@
 "use client";
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useEditorStore } from "@/store/editorStore";
 import { useLanguages } from "@/hooks/useLanguages";
 
-export function LanguageSelector() {
+const isSqlLanguage = (lang) => String(lang?.name || "").toLowerCase().includes("sql");
+
+/**
+ * Language picker. SQL problems only offer SQL; other problems hide it.
+ * Pass `sqlOnly` = undefined to show every language.
+ */
+export function LanguageSelector({ sqlOnly }) {
     const { selectedLanguage, setLanguage } = useEditorStore();
     const { data: languages, isLoading } = useLanguages();
 
-    // Auto-select first language once loaded
+    const options = useMemo(() => {
+        if (!languages) return [];
+        if (sqlOnly === undefined) return languages;
+        const filtered = languages.filter((l) => isSqlLanguage(l) === sqlOnly);
+        return filtered.length ? filtered : languages;
+    }, [languages, sqlOnly]);
+
+    // Keep the selection valid for this problem (e.g. switch to SQL on a SQL problem).
     useEffect(() => {
-        if (languages?.length && !selectedLanguage) {
-            setLanguage(languages[0]);
+        if (!options.length) return;
+        if (!selectedLanguage || !options.some((l) => l.id === selectedLanguage.id)) {
+            setLanguage(options[0]);
         }
-    }, [languages, selectedLanguage, setLanguage]);
+    }, [options, selectedLanguage, setLanguage]);
 
     const handleChange = (e) => {
-        const lang = languages?.find((l) => l.id === e.target.value);
+        const lang = options.find((l) => l.id === e.target.value);
         if (lang) setLanguage(lang);
     };
 
@@ -33,9 +47,10 @@ export function LanguageSelector() {
             onChange={handleChange}
             className="bg-zinc-800 text-zinc-300 text-sm rounded px-3 py-1.5 border border-zinc-700 focus:outline-none focus:border-zinc-500 cursor-pointer hover:bg-zinc-700 transition-colors"
         >
-            {(languages || []).map((lang) => (
+            {options.map((lang) => (
                 <option key={lang.id} value={lang.id}>
                     {lang.name}
+                    {lang.version ? ` (${lang.version})` : ""}
                 </option>
             ))}
         </select>

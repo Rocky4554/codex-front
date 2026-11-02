@@ -7,6 +7,7 @@ import { useAuthStore } from "@/store/authStore";
 import { CheckCircle2, Circle } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/shared/AppHeader";
+import { getVisualizer } from "@/lib/visualizer";
 
 function DifficultyBadge({ difficulty }) {
     const styles = {
@@ -509,6 +510,14 @@ export default function ProblemsPage() {
                                                                 <Link href={`/problems/${slug}`} className="hover:text-emerald-500 transition-colors" onClick={(e) => e.stopPropagation()}>
                                                                     {i + 1}. {problem.title}
                                                                 </Link>
+                                                                {getVisualizer(problem) && (
+                                                                    <span
+                                                                        title="Step-by-step visualization available"
+                                                                        className="material-symbols-outlined ml-1.5 align-middle text-[15px] text-emerald-500/70"
+                                                                    >
+                                                                        animation
+                                                                    </span>
+                                                                )}
                                                                 <TopicChips topics={getProblemTopics(problem)} showAll={showTags} />
                                                             </td>
                                                             <td className="px-6 py-4">

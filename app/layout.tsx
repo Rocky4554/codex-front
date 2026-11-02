@@ -34,7 +34,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
         <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
       </head>
-      <body className="bg-zinc-950 text-zinc-100 min-h-screen" suppressHydrationWarning>
+      <body className={`${geistMono.variable} bg-zinc-950 text-zinc-100 min-h-screen`} suppressHydrationWarning>
         <Providers>
           <ErrorReporter />
           {children}

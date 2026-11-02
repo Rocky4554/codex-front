@@ -140,11 +140,11 @@ export function ProblemSolvePage({ slug }) {
                 <main className="flex-1 overflow-hidden">
                     <Group orientation="horizontal" className="h-full">
                         <Panel id="problem" defaultSize="38%" minSize="20%" className="flex h-full flex-col">
-                            <ProblemPanel problem={problem} />
+                            <ProblemPanel key={problem.id} problem={problem} />
                         </Panel>
                         <ResizeHandle />
                         <Panel id="editor" defaultSize={isCodeBotOpen ? "38%" : "62%"} minSize="25%" className="flex h-full flex-col bg-[#1e1e1e]">
-                            <SolvePanel problem={problem} />
+                            <SolvePanel key={problem.id} problem={problem} />
                         </Panel>
                         {isCodeBotOpen && (
                             <>
