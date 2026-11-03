@@ -10,14 +10,14 @@ export const usePlaylists = () =>
         },
     });
 
-export const usePlaylist = (id) =>
+export const usePlaylist = (id, { enabled = true } = {}) =>
     useQuery({
         queryKey: ["playlists", id],
         queryFn: async () => {
             const { data } = await api.get(`/playlists/${id}`);
             return data;
         },
-        enabled: !!id,
+        enabled: !!id && enabled,
     });
 
 export const useCreatePlaylist = () => {
@@ -43,7 +43,13 @@ export const useDeletePlaylist = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (id) => api.delete(`/playlists/${id}`),
-        onSuccess: () => qc.invalidateQueries({ queryKey: ["playlists"] }),
+        onSuccess: (_, id) => {
+            // Don't prefix-invalidate ["playlists"]: that refetches the deleted
+            // playlist's detail query, which 404s with "Playlist not found".
+            qc.setQueryData(["playlists"], (old) => old?.filter((p) => p.id !== id));
+            qc.invalidateQueries({ queryKey: ["playlists"], exact: true });
+            qc.removeQueries({ queryKey: ["playlists", id], exact: true });
+        },
     });
 };
 

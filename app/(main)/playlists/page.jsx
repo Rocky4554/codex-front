@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
-import { usePlaylists, useCreatePlaylist } from "@/hooks/usePlaylists";
+import { usePlaylists, useCreatePlaylist, useDeletePlaylist } from "@/hooks/usePlaylists";
 import { PlaylistCard } from "@/components/playlists/PlaylistCard";
 import { AppHeader } from "@/components/shared/AppHeader";
 
@@ -12,6 +12,7 @@ export default function PlaylistsPage() {
     const { isLoggedIn } = useAuthStore();
     const { data: playlists, isLoading, error } = usePlaylists();
     const createPlaylist = useCreatePlaylist();
+    const deletePlaylist = useDeletePlaylist();
 
     const [hydrated, setHydrated] = useState(false);
     const [showCreate, setShowCreate] = useState(false);
@@ -45,6 +46,15 @@ export default function PlaylistsPage() {
             router.push(`/playlists/${created.id}`);
         } catch (err) {
             setFormError(err?.response?.data?.message || err?.message || "Could not create playlist");
+        }
+    };
+
+    const handleDelete = async (playlist) => {
+        if (!confirm(`Delete playlist "${playlist.title}"? This cannot be undone.`)) return;
+        try {
+            await deletePlaylist.mutateAsync(playlist.id);
+        } catch (err) {
+            window.alert(err?.response?.data?.message || "Failed to delete playlist");
         }
     };
 
@@ -108,6 +118,8 @@ export default function PlaylistsPage() {
                             key={p.id}
                             playlist={p}
                             onClick={() => router.push(`/playlists/${p.id}`)}
+                            onDelete={() => handleDelete(p)}
+                            deleting={deletePlaylist.isPending && deletePlaylist.variables === p.id}
                         />
                     ))}
                 </div>

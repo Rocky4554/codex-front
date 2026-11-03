@@ -4,7 +4,9 @@ import { useRouter } from "next/navigation";
 import { useProblems } from "@/hooks/useProblems";
 import { useUserProblems } from "@/hooks/useUserProblems";
 import { useAuthStore } from "@/store/authStore";
-import { CheckCircle2, Circle } from "lucide-react";
+import { CheckCircle2, Circle, Pencil, Trash2 } from "lucide-react";
+import { useDeleteProblem } from "@/hooks/useAdmin";
+import { ProblemEditModal } from "@/components/problems/ProblemEditModal";
 import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/shared/AppHeader";
 import { getVisualizer } from "@/lib/visualizer";
@@ -274,6 +276,10 @@ export default function ProblemsPage() {
     const { user } = useAuthStore();
     const { data: problems, isLoading: problemsLoading } = useProblems();
     const { data: userProblems } = useUserProblems();
+    // Catalog problems can only be changed by admins (the API enforces this too).
+    const isAdmin = user?.role === "ADMIN";
+    const deleteProblem = useDeleteProblem();
+    const [editingProblemId, setEditingProblemId] = useState(null);
     const [now, setNow] = useState(() => new Date());
     const [search, setSearch] = useState("");
     const [difficultyFilter, setDifficultyFilter] = useState("ALL");
@@ -378,6 +384,15 @@ export default function ProblemsPage() {
         return matchSearch && matchDiff && matchTopic;
     });
 
+    const handleDeleteProblem = async (problem) => {
+        if (!confirm(`Delete "${problem.title}"? This cannot be undone.`)) return;
+        try {
+            await deleteProblem.mutateAsync(problem.id);
+        } catch (err) {
+            window.alert(err?.response?.data?.message || "Failed to delete problem");
+        }
+    };
+
     return (
         <div className="bg-[#f4f4f5] dark:bg-[#09090b] text-slate-900 dark:text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-emerald-500 selection:text-white">
             <AppHeader active="problems" />
@@ -479,13 +494,14 @@ export default function ProblemsPage() {
                                                 <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400">Title</th>
                                                 <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-40">Difficulty</th>
                                                 <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-40">Acceptance</th>
+                                                {isAdmin && <th className="px-6 py-4 font-medium text-slate-500 dark:text-slate-400 w-24 text-right">Actions</th>}
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
                                             {problemsLoading
                                                 ? Array.from({ length: 8 }).map((_, i) => (
                                                     <tr key={i}>
-                                                        <td colSpan={4} className="px-6 py-4">
+                                                        <td colSpan={isAdmin ? 5 : 4} className="px-6 py-4">
                                                             <div className="h-5 bg-zinc-200 dark:bg-zinc-800 rounded animate-pulse" />
                                                         </td>
                                                     </tr>
@@ -526,13 +542,36 @@ export default function ProblemsPage() {
                                                             <td className="px-6 py-4 text-slate-500 dark:text-slate-400">
                                                                 {problem.acceptanceRate != null ? `${problem.acceptanceRate}%` : "—"}
                                                             </td>
+                                                            {isAdmin && (
+                                                                <td className="px-6 py-4 text-right whitespace-nowrap" onClick={(e) => e.stopPropagation()}>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setEditingProblemId(problem.id)}
+                                                                        className="rounded p-1.5 text-zinc-400 hover:bg-zinc-200 hover:text-emerald-500 dark:hover:bg-zinc-800"
+                                                                        title="Edit problem"
+                                                                        aria-label={`Edit ${problem.title}`}
+                                                                    >
+                                                                        <Pencil className="h-4 w-4" />
+                                                                    </button>
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => handleDeleteProblem(problem)}
+                                                                        disabled={deleteProblem.isPending}
+                                                                        className="rounded p-1.5 text-zinc-400 hover:bg-zinc-200 hover:text-rose-500 disabled:opacity-50 dark:hover:bg-zinc-800"
+                                                                        title="Delete problem"
+                                                                        aria-label={`Delete ${problem.title}`}
+                                                                    >
+                                                                        <Trash2 className="h-4 w-4" />
+                                                                    </button>
+                                                                </td>
+                                                            )}
                                                         </tr>
                                                     );
                                                 })
                                             }
                                             {!problemsLoading && filtered.length === 0 && (
                                                 <tr>
-                                                    <td colSpan={4} className="px-6 py-12 text-center text-slate-400">
+                                                    <td colSpan={isAdmin ? 5 : 4} className="px-6 py-12 text-center text-slate-400">
                                                         No problems found.
                                                     </td>
                                                 </tr>
@@ -632,6 +671,10 @@ export default function ProblemsPage() {
                     </div>
                 </div>
             </main>
+
+            {editingProblemId && (
+                <ProblemEditModal problemId={editingProblemId} onClose={() => setEditingProblemId(null)} />
+            )}
         </div>
     );
 }

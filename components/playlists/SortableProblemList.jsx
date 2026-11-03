@@ -13,7 +13,9 @@ const DIFF_STYLES = {
  * HTML5 drag-and-drop reorder list for playlist problems.
  * Calls onReorder(newOrderedProblems) after a successful drop.
  */
-export function SortableProblemList({ problems, playlistId, onReorder, onRemove, saving, readOnly = false }) {
+export function SortableProblemList({
+    problems, playlistId, onReorder, onRemove, onEdit, onDelete, canManage = () => false, saving, readOnly = false,
+}) {
     const [items, setItems] = useState(problems || []);
     const [dragIndex, setDragIndex] = useState(null);
     const [overIndex, setOverIndex] = useState(null);
@@ -112,6 +114,28 @@ export function SortableProblemList({ problems, playlistId, onReorder, onRemove,
                     <span className={`shrink-0 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${DIFF_STYLES[p.difficulty] || DIFF_STYLES.MEDIUM}`}>
                         {p.difficulty}
                     </span>
+                    {canManage(p) && (
+                        <>
+                            <button
+                                type="button"
+                                onClick={() => onEdit(p.id)}
+                                className="shrink-0 rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-emerald-400"
+                                title="Edit problem"
+                                aria-label={`Edit ${p.title}`}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">edit</span>
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => onDelete(p.id, p.title)}
+                                className="shrink-0 rounded p-1 text-zinc-400 hover:bg-zinc-800 hover:text-rose-400"
+                                title="Delete problem"
+                                aria-label={`Delete ${p.title}`}
+                            >
+                                <span className="material-symbols-outlined text-[18px]">delete</span>
+                            </button>
+                        </>
+                    )}
                     {readOnly ? null : <button
                         type="button"
                         onClick={() => onRemove(p.id, p.title)}

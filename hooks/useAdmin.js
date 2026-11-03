@@ -108,6 +108,8 @@ export const useUpdateProblem = () => {
         mutationFn: ({ id, ...body }) => api.put(`/problems/${id}`, body),
         onSuccess: (_, variables) => {
             qc.invalidateQueries({ queryKey: ["problems"] });
+            qc.invalidateQueries({ queryKey: ["problem", variables.id] });
+            qc.invalidateQueries({ queryKey: ["playlists"] });
             qc.invalidateQueries({ queryKey: ["admin", "problem", variables.id] });
         },
     });
@@ -117,8 +119,10 @@ export const useDeleteProblem = () => {
     const qc = useQueryClient();
     return useMutation({
         mutationFn: (id) => api.delete(`/problems/${id}`),
-        onSuccess: () => {
+        onSuccess: (_, id) => {
             qc.invalidateQueries({ queryKey: ["problems"] });
+            qc.invalidateQueries({ queryKey: ["playlists"] });
+            qc.removeQueries({ queryKey: ["problem", id] });
             qc.invalidateQueries({ queryKey: ["admin", "problem"] });
         },
     });

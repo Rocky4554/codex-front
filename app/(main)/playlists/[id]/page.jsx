@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuthStore } from "@/store/authStore";
 import { useProblems } from "@/hooks/useProblems";
-import { useEditProblemAI } from "@/hooks/useAdmin";
+import { useEditProblemAI, useDeleteProblem } from "@/hooks/useAdmin";
 import {
     usePlaylist,
     useAddProblemToPlaylist,
@@ -16,16 +16,21 @@ import {
     useReorderPlaylistProblems,
 } from "@/hooks/usePlaylists";
 import { ProblemForm, AiProblemGenerator } from "@/components/problems/ProblemAuthoring";
+import { ProblemEditModal } from "@/components/problems/ProblemEditModal";
 import { SortableProblemList } from "@/components/playlists/SortableProblemList";
 import { AppHeader } from "@/components/shared/AppHeader";
 
 export default function PlaylistDetailPage({ params }) {
     const { id } = use(params);
     const router = useRouter();
-    const { isLoggedIn } = useAuthStore();
+    const { isLoggedIn, user } = useAuthStore();
+    const isAdmin = user?.role === "ADMIN";
     const [hydrated, setHydrated] = useState(false);
+    const [deleting, setDeleting] = useState(false);
+    const [editingProblemId, setEditingProblemId] = useState(null);
 
-    const { data: playlist, isLoading, error } = usePlaylist(id);
+    // Stop observing the playlist once it's being deleted so it isn't refetched (and 404s).
+    const { data: playlist, isLoading, error } = usePlaylist(id, { enabled: !deleting });
     const { data: catalogProblems } = useProblems();
     const addProblem = useAddProblemToPlaylist();
     const createInPlaylist = useCreateProblemInPlaylist();
@@ -34,6 +39,7 @@ export default function PlaylistDetailPage({ params }) {
     const updatePlaylist = useUpdatePlaylist();
     const reorderProblems = useReorderPlaylistProblems();
     const editAI = useEditProblemAI();
+    const deleteProblem = useDeleteProblem();
 
     const [tab, setTab] = useState("select"); // select | ai | manual
     const [search, setSearch] = useState("");
@@ -113,8 +119,23 @@ export default function PlaylistDetailPage({ params }) {
 
     const handleDeletePlaylist = async () => {
         if (!confirm(`Delete playlist "${playlist?.title}"? This cannot be undone.`)) return;
-        await deletePlaylist.mutateAsync(id);
-        router.push("/playlists");
+        setDeleting(true);
+        try {
+            await deletePlaylist.mutateAsync(id);
+            router.replace("/playlists");
+        } catch (err) {
+            setDeleting(false);
+            window.alert(err?.response?.data?.message || "Failed to delete playlist");
+        }
+    };
+
+    const handleDeleteProblem = async (problemId, title) => {
+        if (!confirm(`Permanently delete "${title}"? This removes the problem itself, not just from this playlist.`)) return;
+        try {
+            await deleteProblem.mutateAsync(problemId);
+        } catch (err) {
+            window.alert(err?.response?.data?.message || "Failed to delete problem");
+        }
     };
 
     const handleSaveMeta = async () => {
@@ -130,7 +151,7 @@ export default function PlaylistDetailPage({ params }) {
         }
     };
 
-    if (!hydrated || !isLoggedIn || isLoading) {
+    if (!hydrated || !isLoggedIn || isLoading || deleting) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-[#f4f4f5] dark:bg-[#09090b]">
                 <div className="h-8 w-8 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
@@ -227,7 +248,10 @@ export default function PlaylistDetailPage({ params }) {
                         playlistId={id}
                         onReorder={handleReorder}
                         onRemove={handleRemove}
-                        saving={reorderProblems.isPending || removeProblem.isPending}
+                        onEdit={setEditingProblemId}
+                        onDelete={handleDeleteProblem}
+                        canManage={(p) => isAdmin || (p.userCreated && !readOnly)}
+                        saving={reorderProblems.isPending || removeProblem.isPending || deleteProblem.isPending}
                         readOnly={readOnly}
                     />
                 </section>
@@ -336,6 +360,10 @@ export default function PlaylistDetailPage({ params }) {
                     )}
                 </section>}
             </main>
+
+            {editingProblemId && (
+                <ProblemEditModal problemId={editingProblemId} onClose={() => setEditingProblemId(null)} />
+            )}
         </div>
     );
 }
