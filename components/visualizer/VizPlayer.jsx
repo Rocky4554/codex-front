@@ -2,6 +2,9 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence, LayoutGroup, MotionConfig, motion } from "motion/react";
 import { runApproach } from "@/lib/visualizer/engine";
+import { CODE_LANGUAGES, codeFor } from "@/lib/visualizer";
+import { languageKey } from "@/lib/starterCode";
+import { useEditorStore } from "@/store/editorStore";
 import { StructureView } from "./views/StructureView";
 import { FADE, SMOOTH } from "./views/tones";
 
@@ -52,8 +55,24 @@ function IconButton({ title, onClick, disabled, icon }) {
     );
 }
 
+/** Time / space badges for an approach. */
+export function ComplexityBadges({ complexity, className = "" }) {
+    if (!complexity) return null;
+    return (
+        <div className={`flex flex-wrap items-center gap-2 ${className}`}>
+            {[["schedule", "Time", complexity.time], ["memory", "Space", complexity.space]].map(([icon, label, v]) => (
+                <span key={label} className="inline-flex items-center gap-1.5 rounded-md border border-zinc-700 bg-zinc-800/60 px-2 py-1 text-[11px]">
+                    <span className="material-symbols-outlined text-[14px] text-emerald-400">{icon}</span>
+                    <span className="text-zinc-400">{label}</span>
+                    <span className="font-mono font-semibold text-zinc-100">{v}</span>
+                </span>
+            ))}
+        </div>
+    );
+}
+
 /** Plays one computed run (steps for a fixed input + approach). Remounted when either changes. */
-function Run({ approach, run }) {
+function Run({ def, approach, run, lang, onLangChange }) {
     const uid = useId();
     const [canvasRef, width] = useWidth();
     const steps = run.steps;
@@ -90,6 +109,10 @@ function Run({ approach, run }) {
 
     const step = steps[idx];
     const vars = Object.entries(step.vars || {});
+    // Falls back to Python if this approach has no translation yet.
+    const shownLang = codeFor(def, approach, lang) ? lang : "python";
+    const codeLines = codeFor(def, approach, shownLang);
+    const firstActive = codeLines.findIndex((l) => l.line === step.line);
     const progress = steps.length > 1 ? idx / (steps.length - 1) : 1;
 
     return (
@@ -199,23 +222,46 @@ function Run({ approach, run }) {
             )}
 
             {/* Code with the executing line highlighted */}
-            <div className="mt-3 overflow-x-auto rounded-lg border border-zinc-800 bg-[#09090b] py-2">
-                {approach.code.map((line, i) => {
-                    const active = step.line === i + 1;
-                    return (
-                        <div key={i} className="relative flex gap-3 px-4 py-[3px] font-mono text-xs whitespace-pre">
-                            {active && (
-                                <motion.div
-                                    layoutId="code-line"
-                                    transition={SMOOTH}
-                                    className="absolute inset-0 border-l-2 border-emerald-400 bg-emerald-500/10"
-                                />
-                            )}
-                            <span className={`relative w-4 shrink-0 select-none text-right ${active ? "text-emerald-400" : "text-zinc-700"}`}>{i + 1}</span>
-                            <span className={`relative ${active ? "text-emerald-200" : "text-zinc-400"}`}>{line}</span>
-                        </div>
-                    );
-                })}
+            <div className="mt-3 overflow-hidden rounded-lg border border-zinc-800 bg-[#09090b]">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-b border-zinc-800 px-2 py-1.5">
+                    <div className="flex flex-wrap gap-1" role="tablist" aria-label="Code language">
+                        {CODE_LANGUAGES.map((l) => (
+                            <button
+                                key={l.key}
+                                type="button"
+                                role="tab"
+                                aria-selected={shownLang === l.key}
+                                onClick={() => onLangChange(l.key)}
+                                className={`rounded px-2 py-1 text-[11px] font-medium transition-colors ${
+                                    shownLang === l.key ? "bg-emerald-500/15 text-emerald-300" : "text-zinc-500 hover:bg-zinc-800 hover:text-zinc-200"
+                                }`}
+                            >
+                                {l.label}
+                            </button>
+                        ))}
+                    </div>
+                    <ComplexityBadges complexity={approach.complexity} />
+                </div>
+                <div className="overflow-x-auto py-2">
+                    {codeLines.map((l, i) => {
+                        const active = l.line != null && l.line === step.line;
+                        return (
+                            <div key={i} className="relative flex gap-3 px-4 py-[3px] font-mono text-xs whitespace-pre">
+                                {active && (i === firstActive ? (
+                                    <motion.div
+                                        layoutId="code-line"
+                                        transition={SMOOTH}
+                                        className="absolute inset-0 border-l-2 border-emerald-400 bg-emerald-500/10"
+                                    />
+                                ) : (
+                                    <div className="absolute inset-0 border-l-2 border-emerald-400 bg-emerald-500/10" />
+                                ))}
+                                <span className={`relative w-5 shrink-0 select-none text-right ${active ? "text-emerald-400" : "text-zinc-700"}`}>{i + 1}</span>
+                                <span className={`relative ${active ? "text-emerald-200" : "text-zinc-400"}`}>{l.text}</span>
+                            </div>
+                        );
+                    })}
+                </div>
             </div>
             <p className="mt-2 font-mono text-[10px] text-zinc-600">← → step · space play/pause · home restart</p>
         </LayoutGroup>
@@ -237,6 +283,9 @@ export function VizPlayer({ def, examples = [] }) {
     const [customApplied, setCustomApplied] = useState(exampleInputs[0]);
     const [approachKey, setApproachKey] = useState(def.approaches[0].key);
     const approach = def.approaches.find((a) => a.key === approachKey) || def.approaches[0];
+    // Start in the language the editor is set to; the code panel can switch it.
+    const editorLang = languageKey(useEditorStore((s) => s.selectedLanguage));
+    const [lang, setLang] = useState(() => (CODE_LANGUAGES.some((l) => l.key === editorLang) ? editorLang : "python"));
 
     const input = source === "custom" ? customApplied : exampleInputs[source] ?? exampleInputs[0];
 
@@ -305,14 +354,11 @@ export function VizPlayer({ def, examples = [] }) {
                         ))}
                     </div>
                 )}
-                {approach.complexity && (
-                    <p className="font-mono text-[11px] text-zinc-500">
-                        {def.approaches.length === 1 && <span className="mr-2 text-zinc-300">{approach.label}</span>}
-                        time <span className="text-zinc-300">{approach.complexity.time}</span>
-                        <span className="mx-1.5">·</span>
-                        space <span className="text-zinc-300">{approach.complexity.space}</span>
-                    </p>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                    <span className="mr-1 text-[10px] uppercase tracking-widest text-zinc-500">Complexity</span>
+                    {def.approaches.length === 1 && <span className="text-xs text-zinc-300">{approach.label}</span>}
+                    <ComplexityBadges complexity={approach.complexity} />
+                </div>
 
                 {run.error && !run.steps?.length ? (
                     <div className="rounded-lg border border-rose-500/30 bg-rose-500/10 px-3 py-2 text-xs text-rose-300">{run.error}</div>
@@ -321,7 +367,7 @@ export function VizPlayer({ def, examples = [] }) {
                         {run.error && (
                             <div className="rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs text-amber-300">{run.error} Showing the first steps.</div>
                         )}
-                        <Run key={`${approach.key}|${input}`} approach={approach} run={run} />
+                        <Run key={`${approach.key}|${input}`} def={def} approach={approach} run={run} lang={lang} onLangChange={setLang} />
                     </>
                 )}
             </div>

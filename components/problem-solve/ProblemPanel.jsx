@@ -9,7 +9,8 @@ import { useEditorStore } from "@/store/editorStore";
 import { getVisualization } from "@/lib/visualizations";
 import { getVisualizer } from "@/lib/visualizer";
 import { StepPlayer } from "@/components/visualizer/StepPlayer";
-import { VizPlayer } from "@/components/visualizer/VizPlayer";
+import { VizPlayer, ComplexityBadges } from "@/components/visualizer/VizPlayer";
+import { getComplexity } from "@/lib/complexity";
 
 const descriptionMdComponents = {
     p: (props) => <p className="mb-4 last:mb-0 leading-relaxed" {...props} />,
@@ -166,12 +167,13 @@ function SubmissionsList({ problemId }) {
     );
 }
 
-export function ProblemPanel({ problem }) {
+export function ProblemPanel({ problem, listLabel = "Problems", onOpenList }) {
     const [activeTab, setActiveTab] = useState("description");
     // New tracer-based visualizers first; the hand-written lessons (LLD) as fallback.
     const visualizer = getVisualizer(problem);
     const lesson = visualizer ? null : getVisualization(problem);
     const canVisualize = !!(visualizer || lesson);
+    const complexity = getComplexity(problem);
 
     // Normalize difficulty to title case for display
     const difficulty = problem.difficulty
@@ -202,7 +204,21 @@ export function ProblemPanel({ problem }) {
     return (
         <section className="flex flex-col border-r border-zinc-800 bg-[#18181b] h-full overflow-hidden text-slate-100">
             {/* Tabs */}
-            <div className="flex items-center gap-1 bg-[#18181b] border-b border-zinc-800 px-2 pt-2">
+            <div className="flex items-center gap-1 overflow-x-auto whitespace-nowrap bg-[#18181b] border-b border-zinc-800 px-2 pt-2">
+                {onOpenList && (
+                    <>
+                        <button
+                            type="button"
+                            onClick={onOpenList}
+                            className="px-3 py-2 hover:bg-[#27272a]/50 rounded-t-lg text-zinc-400 hover:text-white text-sm font-medium cursor-pointer transition-colors flex items-center gap-2"
+                            title={`Open ${listLabel.toLowerCase()} list`}
+                        >
+                            <span className="material-symbols-outlined text-[16px]">{listLabel === "Playlist" ? "queue_music" : "format_list_bulleted"}</span>
+                            {listLabel}
+                        </button>
+                        <span className="mx-1 h-5 w-px self-center bg-zinc-700" aria-hidden />
+                    </>
+                )}
                 <button
                     type="button"
                     onClick={() => setActiveTab("description")}
@@ -301,6 +317,26 @@ export function ProblemPanel({ problem }) {
                                         <li key={i}><code className="bg-[#09090b] px-1 rounded text-zinc-300 font-mono">{c}</code></li>
                                     ))}
                                 </ul>
+                            </div>
+                        )}
+
+                        {/* Complexity of the standard approaches, optimal last */}
+                        {complexity.length > 0 && (
+                            <div className="mt-8 mb-4">
+                                <h3 className="text-white font-semibold text-sm mb-3">Complexity:</h3>
+                                <div className="space-y-2">
+                                    {complexity.map((c, i) => (
+                                        <div key={i} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border border-zinc-800 bg-[#09090b] px-3 py-2">
+                                            <span className="flex items-center gap-2 text-xs text-zinc-300">
+                                                {c.label}
+                                                {complexity.length > 1 && i === complexity.length - 1 && (
+                                                    <span className="rounded bg-emerald-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-emerald-400">Optimal</span>
+                                                )}
+                                            </span>
+                                            <ComplexityBadges complexity={c} />
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
                         )}
                     </div>

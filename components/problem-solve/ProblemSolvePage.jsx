@@ -3,6 +3,7 @@ import { Group, Panel, Separator } from "react-resizable-panels";
 import { ProblemPanel } from "./ProblemPanel";
 import { SolvePanel } from "./SolvePanel";
 import { CodeBotPanel } from "./CodeBotPanel";
+import { ProblemListDrawer } from "./ProblemListDrawer";
 import { useProblem } from "@/hooks/useProblem";
 import { useProblems } from "@/hooks/useProblems";
 import { usePlaylist } from "@/hooks/usePlaylists";
@@ -10,7 +11,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useAssistantStore } from "@/store/assistantStore";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { useMemo } from "react";
+import { useCallback, useMemo, useState } from "react";
 
 function ResizeHandle() {
     return (
@@ -22,14 +23,16 @@ function ResizeHandle() {
 
 export function ProblemSolvePage({ slug }) {
     const { data: problem, isLoading, error } = useProblem(slug);
-    const { data: allProblems } = useProblems();
+    const { data: allProblems, isLoading: problemsLoading } = useProblems();
     const searchParams = useSearchParams();
     const playlistId = searchParams.get("playlist");
-    const { data: playlist } = usePlaylist(playlistId);
+    const { data: playlist, isLoading: playlistLoading } = usePlaylist(playlistId);
     const { user, isLoggedIn } = useAuthStore();
     const isCodeBotOpen = useAssistantStore((s) => s.isOpen);
     const toggleCodeBot = useAssistantStore((s) => s.toggle);
     const router = useRouter();
+    const [listOpen, setListOpen] = useState(false);
+    const closeList = useCallback(() => setListOpen(false), []);
 
     const withPlaylist = (problemId) =>
         playlistId ? `/problems/${problemId}?playlist=${playlistId}` : `/problems/${problemId}`;
@@ -140,7 +143,12 @@ export function ProblemSolvePage({ slug }) {
                 <main className="flex-1 overflow-hidden">
                     <Group orientation="horizontal" className="h-full">
                         <Panel id="problem" defaultSize="38%" minSize="20%" className="flex h-full flex-col">
-                            <ProblemPanel key={problem.id} problem={problem} />
+                            <ProblemPanel
+                                key={problem.id}
+                                problem={problem}
+                                listLabel={playlistId ? "Playlist" : "Problems"}
+                                onOpenList={() => setListOpen(true)}
+                            />
                         </Panel>
                         <ResizeHandle />
                         <Panel id="editor" defaultSize={isCodeBotOpen ? "38%" : "62%"} minSize="25%" className="flex h-full flex-col bg-[#1e1e1e]">
@@ -157,6 +165,20 @@ export function ProblemSolvePage({ slug }) {
                     </Group>
                 </main>
             )}
+
+            <ProblemListDrawer
+                open={listOpen}
+                onClose={closeList}
+                problems={sorted}
+                loading={playlistId ? playlistLoading : problemsLoading}
+                currentId={problem?.id ?? slug}
+                title={playlistId ? (playlist?.title || "Playlist") : "All problems"}
+                titleHref={backHref}
+                onSelect={(id) => {
+                    setListOpen(false);
+                    if (id !== (problem?.id ?? slug)) router.push(withPlaylist(id));
+                }}
+            />
         </div>
     );
 }
